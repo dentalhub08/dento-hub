@@ -1,0 +1,3 @@
+import { Mail, MessageCircle, Phone } from "lucide-react";
+export const metadata={title:"Contact"};
+export default function Contact(){return <main className="shell simple-page"><span className="section-kicker">SUPPORT</span><h1>Talk to DENTO HUB.</h1><p className="lead">Questions about a product, course list or order? Reach the team directly.</p><div className="contact-grid"><a href="mailto:dentalhub08@outlook.com"><Mail/><span><small>Email</small><strong>dentalhub08@outlook.com</strong></span></a><div><MessageCircle/><span><small>WhatsApp</small><strong>Configure number in Admin</strong></span></div><div><Phone/><span><small>Phone</small><strong>Configure number in Admin</strong></span></div></div></main>}
