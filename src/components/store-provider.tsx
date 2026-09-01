@@ -78,13 +78,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setLocaleState(savedLocale);
     setDeliveryLocationState(localStorage.getItem("dento-delivery-location"));
 
-    const supabase = createClient();
-    if (!supabase) {
+    const client = createClient();
+    if (!client) {
       setCart(guestCartSnapshot());
       setWishlist(guestWishlistSnapshot());
       setReady(true);
       return;
     }
+    const supabase = client;
 
     let active = true;
 

@@ -29,11 +29,12 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    if (!supabase) {
+    const client = createClient();
+    if (!client) {
       setLoading(false);
       return;
     }
+    const supabase = client;
 
     let active = true;
 
