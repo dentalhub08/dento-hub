@@ -18,7 +18,6 @@ type SessionUser = {
   email?: string | null;
   user_metadata?: Record<string, unknown>;
 };
-type AuthSession = { user?: SessionUser | null } | null;
 
 export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
   const pathname = usePathname();
@@ -30,12 +29,11 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const client = createClient();
-    if (!client) {
+    const supabase = createClient();
+    if (!supabase) {
       setLoading(false);
       return;
     }
-    const supabase = client;
 
     let active = true;
 
@@ -45,28 +43,57 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
       setIsAdmin(false);
       setProfileName("");
 
-      if (nextUser) {
-        const [{ data: adminRow }, { data: profile }] = await Promise.all([
+      if (!nextUser) {
+        if (active) setLoading(false);
+        return;
+      }
+
+      try {
+        const [adminResult, profileResult] = await Promise.allSettled([
           supabase.from("admin_users").select("user_id").eq("user_id", nextUser.id).maybeSingle(),
           supabase.from("profiles").select("full_name").eq("id", nextUser.id).maybeSingle(),
         ]);
-        if (active) {
-          setIsAdmin(Boolean(adminRow));
+
+        if (!active) return;
+
+        if (adminResult.status === "fulfilled") {
+          setIsAdmin(Boolean(adminResult.value.data));
+        }
+
+        if (profileResult.status === "fulfilled") {
+          const profile = profileResult.value.data as { full_name?: unknown } | null;
           setProfileName(typeof profile?.full_name === "string" ? profile.full_name.trim() : "");
         }
+      } catch (error) {
+        console.warn("DENTO HUB: account profile sync skipped", error);
+      } finally {
+        if (active) setLoading(false);
       }
-      if (active) setLoading(false);
     }
 
-    supabase.auth.getUser().then(({ data }: { data: { user: SessionUser | null } }) => void applyUser(data.user));
+    void supabase.auth.getUser()
+      .then(({ data }) => applyUser((data.user || null) as SessionUser | null))
+      .catch((error: unknown) => {
+        console.warn("DENTO HUB: account session unavailable", error);
+        if (active) {
+          setUser(null);
+          setLoading(false);
+        }
+      });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: AuthSession) => {
-      void applyUser((session?.user || null) as SessionUser | null);
-    });
+    let unsubscribe: (() => void) | null = null;
+    try {
+      const listener = supabase.auth.onAuthStateChange((_event, session) => {
+        void applyUser((session?.user || null) as SessionUser | null);
+      });
+      unsubscribe = () => listener.data.subscription.unsubscribe();
+    } catch (error) {
+      console.warn("DENTO HUB: account listener unavailable", error);
+    }
 
     return () => {
       active = false;
-      listener.subscription.unsubscribe();
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -82,18 +109,15 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
 
   async function signOut() {
     const supabase = createClient();
-    if (!supabase) return;
-    await supabase.auth.signOut();
+    if (supabase) {
+      try { await supabase.auth.signOut(); } catch {}
+    }
     setOpen(false);
-    window.location.replace("/");
+    window.location.assign("/");
   }
 
   if (loading) {
-    return (
-      <div className="account-session-loading" aria-label="Checking account">
-        <UserRound size={20} />
-      </div>
-    );
+    return <div className="account-session-loading" aria-label="Checking account"><UserRound size={20} /></div>;
   }
 
   if (!user) {
@@ -105,7 +129,10 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
     );
   }
 
-  const metadataName = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "";
+  const metadataName =
+    typeof user.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name.trim()
+      : "";
   const fullName = profileName || metadataName || user.email?.split("@")[0] || "Account";
   const firstName = fullName.split(/\s+/)[0] || fullName;
 
