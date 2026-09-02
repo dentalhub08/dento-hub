@@ -360,3 +360,37 @@
   .header-actions .lang-btn { display: none !important; }
 }
 /* ===== END DENTO HUB mobile header + clean course number fix ===== */
+
+
+/* DENTO HUB: restore mobile sign-in */
+@media (max-width: 650px) {
+  .header-actions .account-link {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    padding: 0 7px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  .header-actions .account-link svg {
+    flex: 0 0 auto !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .header-actions .account-link {
+    width: 36px !important;
+    min-width: 36px !important;
+    padding: 0 !important;
+  }
+
+  .header-actions .account-link span {
+    display: none !important;
+  }
+}
+/* END DENTO HUB: restore mobile sign-in */
