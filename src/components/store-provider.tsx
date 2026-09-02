@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { AuthChangeEvent, Session, UserResponse } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 type CartItem = { id: string; name: string; price: number; quantity: number };
@@ -95,7 +96,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     let active = true;
 
     void supabase.auth.getUser()
-      .then(({ data }) => {
+      .then(({ data }: UserResponse) => {
         if (active) setSignedIn(Boolean(data.user));
       })
       .catch((error: unknown) => {
@@ -105,7 +106,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     let subscription: { unsubscribe: () => void } | null = null;
     try {
-      const listener = supabase.auth.onAuthStateChange((_event, session) => {
+      const listener = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
         if (active) setSignedIn(Boolean(session?.user));
       });
       subscription = listener.data.subscription;

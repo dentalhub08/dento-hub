@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { AuthChangeEvent, Session, UserResponse } from "@supabase/supabase-js";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -72,7 +73,7 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
     }
 
     void supabase.auth.getUser()
-      .then(({ data }) => applyUser((data.user || null) as SessionUser | null))
+      .then(({ data }: UserResponse) => applyUser((data.user || null) as SessionUser | null))
       .catch((error: unknown) => {
         console.warn("DENTO HUB: account session unavailable", error);
         if (active) {
@@ -83,7 +84,7 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
 
     let unsubscribe: (() => void) | null = null;
     try {
-      const listener = supabase.auth.onAuthStateChange((_event, session) => {
+      const listener = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
         void applyUser((session?.user || null) as SessionUser | null);
       });
       unsubscribe = () => listener.data.subscription.unsubscribe();
