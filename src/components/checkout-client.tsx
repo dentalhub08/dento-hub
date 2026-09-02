@@ -19,7 +19,7 @@ export function CheckoutClient(){
   const subtotal=cart.reduce((s,x)=>s+x.price*x.quantity,0);
   const selectedLocation=deliveryLocations.find(x=>x.id===deliveryLocation);
 
-  useEffect(()=>{const s=createClient(); if(!s){setAuth("no");return;} s.auth.getUser().then(({data})=>setAuth(data.user?"yes":"no"));},[]);
+  useEffect(()=>{const s=createClient(); if(!s){setAuth("no");return;} s.auth.getUser().then(({data}: {data: {user: {id:string}|null}})=>setAuth(data.user?"yes":"no"));},[]);
 
   useEffect(()=>{
     let active=true;

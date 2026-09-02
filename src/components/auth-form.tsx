@@ -166,9 +166,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       .select("id,name_en")
       .eq("is_active", true)
       .order("name_en", { ascending: true })
-      .then(({ data }) => {
+      .then(({ data }: { data: University[] | null }) => {
         if (!active) return;
-        setUniversities((data || []) as University[]);
+        setUniversities(data || []);
         setUniversitiesLoading(false);
       });
     return () => {

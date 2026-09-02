@@ -155,8 +155,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setReady(true);
     }
 
-    supabase.auth.getUser().then(({ data }) => void hydrate(data.user?.id || null));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: { id: string } | null } }) => void hydrate(data.user?.id || null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: { user?: { id: string } | null } | null) => {
       void hydrate(session?.user?.id || null);
     });
 

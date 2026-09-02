@@ -39,6 +39,11 @@ type OrderItem = {
   quantity: number;
   final_unit_price: number;
 };
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+};
 
 function pretty(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -68,7 +73,7 @@ export function AdminOrders({ notificationsView = false }: { notificationsView?:
       userIds.length ? supabase.from("profiles").select("id,full_name,phone").in("id", userIds) : Promise.resolve({ data: [] }),
       orderIds.length ? supabase.from("order_items").select("id,order_id,product_name_en,variation_snapshot,quantity,final_unit_price").in("order_id", orderIds) : Promise.resolve({ data: [] }),
     ]);
-    const profileMap = new Map((profiles || []).map((profile) => [profile.id, profile]));
+    const profileMap = new Map<string, ProfileRow>(((profiles || []) as ProfileRow[]).map((profile) => [profile.id, profile]));
     const typedItems = (itemData || []) as OrderItem[];
     const counts = new Map<string, number>();
     for (const item of typedItems) counts.set(item.order_id, (counts.get(item.order_id) || 0) + Number(item.quantity || 0));

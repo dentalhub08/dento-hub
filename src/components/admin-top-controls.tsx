@@ -53,7 +53,7 @@ export function AdminTopControls() {
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email || "Admin"));
+    supabase.auth.getUser().then(({ data }: { data: { user: { email?: string | null } | null } }) => setEmail(data.user?.email || "Admin"));
     setLastSeen(window.localStorage.getItem("dento-admin-orders-seen"));
     void loadOrders();
     const timer = window.setInterval(() => void loadOrders(), 15000);

@@ -18,6 +18,7 @@ type SessionUser = {
   email?: string | null;
   user_metadata?: Record<string, unknown>;
 };
+type AuthSession = { user?: SessionUser | null } | null;
 
 export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
   const pathname = usePathname();
@@ -57,9 +58,9 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
       if (active) setLoading(false);
     }
 
-    supabase.auth.getUser().then(({ data }) => void applyUser(data.user as SessionUser | null));
+    supabase.auth.getUser().then(({ data }: { data: { user: SessionUser | null } }) => void applyUser(data.user));
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: AuthSession) => {
       void applyUser((session?.user || null) as SessionUser | null);
     });
 
