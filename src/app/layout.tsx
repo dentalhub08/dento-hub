@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { StoreProvider } from "@/components/store-provider";
 import { Header } from "@/components/header";
 import { CatalogProvider } from "@/components/catalog-provider";
 import { Footer } from "@/components/footer";
-import { getSupabaseRuntimeConfig } from "@/lib/supabase/runtime-config";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
@@ -31,32 +29,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const config = await getSupabaseRuntimeConfig();
-
-  const publicConfigScript =
-    config.url && config.key
-      ? `window.__DENTO_SUPABASE__=${JSON.stringify({
-          url: config.url,
-          key: config.key,
-        }).replace(/</g, "\\u003c")};`
-      : "";
-
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {publicConfigScript ? (
-          <script
-            id="dento-supabase-runtime-config"
-            dangerouslySetInnerHTML={{ __html: publicConfigScript }}
-          />
-        ) : null}
-      </head>
       <body>
+        {/* Loads the public Supabase config from Cloudflare runtime BEFORE hydration. */}
+        <Script src="/api/supabase-config" strategy="beforeInteractive" />
+
         <StoreProvider>
           <CatalogProvider>
             <div className="storefront">
