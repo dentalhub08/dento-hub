@@ -7,3 +7,5 @@ node_modules
 .DS_Store
 *.log
 src/lib/supabase/generated-public-config.ts
+.open-next/
+.env.local
