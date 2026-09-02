@@ -23,7 +23,7 @@ export function Header() {
     </div>
     <header className="site-header">
       <div className="shell header-row">
-        <button className="icon-btn mobile-only" aria-label="Menu"><Menu size={21}/></button>
+        <Link href="/shop" className="icon-btn mobile-only mobile-shop-link" aria-label="Open shop"><Menu size={21}/></Link>
         <Link href="/" className="brand brand-logo-link" aria-label="DENTO HUB home">
           <img className="brand-logo-img" src="/dento-hub-logo.png" alt="DENTO HUB — Your Dental Supply Hub" />
         </Link>
