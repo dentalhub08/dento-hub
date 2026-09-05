@@ -9,7 +9,6 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
-  CircleCheck,
   Clock3,
   CreditCard,
   Loader2,
@@ -153,7 +152,7 @@ function statusClass(status: OrderStatus) {
 }
 
 function statusIcon(status: OrderStatus, size = 18) {
-  if (status === "confirmed") return <CircleCheck size={size} />;
+  if (status === "confirmed") return <CheckCircle2 size={size} />;
   if (status === "preparing") return <PackageCheck size={size} />;
   if (status === "shipped") return <Truck size={size} />;
   if (status === "out_for_delivery") return <MapPin size={size} />;

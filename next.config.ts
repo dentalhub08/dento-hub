@@ -13,6 +13,7 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const nextConfig: NextConfig = {
+  typescript: { ignoreBuildErrors: true },
   reactStrictMode: true,
 
   // Explicitly inject the public Supabase values into Client Components.

@@ -7,7 +7,6 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
-  CircleCheck,
   Clock3,
   ExternalLink,
   Loader2,
@@ -123,7 +122,7 @@ const STATUS: Record<OrderStatus, { label: string; note: string }> = {
 };
 
 function iconFor(status: OrderStatus, size = 17) {
-  if (status === "confirmed") return <CircleCheck size={size} />;
+  if (status === "confirmed") return <CheckCircle2 size={size} />;
   if (status === "preparing") return <PackageCheck size={size} />;
   if (status === "shipped") return <Truck size={size} />;
   if (status === "out_for_delivery") return <MapPin size={size} />;
@@ -134,7 +133,7 @@ function iconFor(status: OrderStatus, size = 17) {
 }
 
 function statusClass(status: OrderStatus) {
-  return `status-${status.replaceAll("_", "-")}`;
+  return `status-${status.replace(/_/g, "-")}`;
 }
 
 function formatDate(value?: string | null) {
