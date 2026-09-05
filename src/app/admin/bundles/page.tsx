@@ -1,1 +1,3 @@
-export default function Page(){return <><div className="admin-pagehead"><div><span className="admin-kicker">MANAGE</span><h1>Bundles</h1><p>This module is scaffolded and ready to connect to the Supabase schema included with the project.</p></div></div><div className="settings-card"><h3>Bundles</h3><p className="admin-placeholder">Use this production shell to wire CRUD against Supabase. The database tables and RLS foundation are included in <code>supabase/migrations</code>.</p></div></>}
+import { AdminBundles } from "@/components/admin-bundles";
+export const dynamic = "force-dynamic";
+export default function Page(){ return <AdminBundles/>; }

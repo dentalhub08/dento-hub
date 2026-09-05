@@ -1,18 +1,17 @@
-DENTO HUB — FINAL 6 TYPESCRIPT ERRORS FIX
+DENTO HUB — ADMIN TOP RIGHT BAR FIX
 
-Apply from inside dento-hub-app:
+This patch only appends/restores CSS for the existing AdminTopControls component.
+It does not change Supabase, auth, products, prices, orders, or Cloudflare configuration.
 
-Expand-Archive "$env:USERPROFILE\Downloads\DENTO_HUB_LAST_6_TS_ERRORS_FIX.zip" -DestinationPath "." -Force
-node .\fix-last-6-types.mjs
+From inside dento-hub-app:
+
+Expand-Archive "$env:USERPROFILE\Downloads\DENTO_HUB_ADMIN_TOP_RIGHT_BAR_FIX.zip" -DestinationPath "." -Force
+
+node .\fix-admin-topbar.mjs
+
 npm run build:cloudflare
 
-If the build succeeds:
-git add .
-git commit -m "Fix final Supabase TypeScript callbacks"
-git push
-
-This patch only changes:
-- src/components/auth-account-menu.tsx
-- src/components/store-provider.tsx
-
-It does NOT change UI, Supabase settings, Cloudflare settings, shop filters, cart behavior, or authentication flow.
+If successful:
+git add src/app/globals.css
+git commit -m "Fix admin top right bar"
+git push origin main

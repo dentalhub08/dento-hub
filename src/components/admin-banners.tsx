@@ -1,95 +1,447 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ImageIcon, Plus, Pencil, Trash2, Eye, EyeOff, Save, X, Megaphone, Loader2 } from "lucide-react";
-import { adCourseLabels, adPlacementLabels, StoreAd, AdPlacement, AdCourse } from "@/data/banners";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import {
+  Eye,
+  EyeOff,
+  ImageIcon,
+  Loader2,
+  Pencil,
+  Plus,
+  Save,
+  Trash2,
+  UploadCloud,
+  X,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { uploadAdminImage } from "@/lib/admin-media";
 
-const imageChoices=[
-  "/supply-images/rubber-dam-sheets.jpg","/supply-images/packable-composite.jpg","/supply-images/k-files-15-40.jpg",
-  "/supply-images/gutta-percha-15-40.jpg","/supply-images/high-speed-handpiece.jpg","/supply-images/wax-knife.jpg",
-  "/supply-images/alginate.jpg","/supply-images/light-cure.jpg"
-];
+type Placement = "home_top" | "course_section" | "shop_top";
+type CourseRow = { id: string; slug: string; name_en: string };
 
-const blank:StoreAd={id:"",title:"",subtitle:"",cta:"Shop now",href:"/shop",placement:"home_top",course:"all",image:imageChoices[0],active:true};
-
-type CourseRow={id:string;slug:string;name_en:string};
-type BannerRow={
-  id:string; title_en:string; subtitle_en:string|null; cta_en:string; destination_path:string;
-  placement:AdPlacement; course_id:string|null; image_storage_path:string|null; is_active:boolean;
-  courses?:{slug:string}|{slug:string}[]|null;
+type Banner = {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  subtitleEn: string;
+  subtitleAr: string;
+  ctaEn: string;
+  ctaAr: string;
+  href: string;
+  placement: Placement;
+  courseId: string | null;
+  image: string;
+  active: boolean;
+  sortOrder: number;
 };
 
-function slugToCourse(slug?:string|null):AdCourse{
-  if(slug==="operative-dentistry")return "operative";
-  if(slug==="endodontics")return "endo";
-  if(slug==="fixed-prosthodontics")return "fixed";
-  if(slug==="removable-prosthodontics")return "removable";
-  return "all";
+type DbBanner = {
+  id: string;
+  title_en: string | null;
+  title_ar: string | null;
+  subtitle_en: string | null;
+  subtitle_ar: string | null;
+  cta_en: string | null;
+  cta_ar: string | null;
+  destination_path: string | null;
+  placement: string | null;
+  course_id: string | null;
+  image_storage_path: string | null;
+  is_active: boolean | null;
+  sort_order: number | null;
+};
+
+const placementLabels: Record<Placement, string> = {
+  home_top: "Homepage — top",
+  course_section: "Homepage — course section",
+  shop_top: "Shop — top",
+};
+
+const blank: Banner = {
+  id: "",
+  titleEn: "",
+  titleAr: "",
+  subtitleEn: "",
+  subtitleAr: "",
+  ctaEn: "Shop now",
+  ctaAr: "تسوق الآن",
+  href: "/shop",
+  placement: "home_top",
+  courseId: null,
+  image: "",
+  active: true,
+  sortOrder: 0,
+};
+
+function normalizePlacement(value: string | null): Placement {
+  if (value === "course_section" || value === "shop_top") return value;
+  return "home_top";
 }
-function courseToSlug(course:AdCourse){return course==="operative"?"operative-dentistry":course==="endo"?"endodontics":course==="fixed"?"fixed-prosthodontics":course==="removable"?"removable-prosthodontics":null;}
 
-export function AdminBanners(){
-  const [ads,setAds]=useState<StoreAd[]>([]);
-  const [courses,setCourses]=useState<CourseRow[]>([]);
-  const [editing,setEditing]=useState<StoreAd|null>(null);
-  const [loading,setLoading]=useState(true);
-  const [saving,setSaving]=useState(false);
-  const [message,setMessage]=useState("");
+export function AdminBanners() {
+  const [ads, setAds] = useState<Banner[]>([]);
+  const [courses, setCourses] = useState<CourseRow[]>([]);
+  const [editing, setEditing] = useState<Banner | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  async function load(){
-    const supabase=createClient();
-    if(!supabase){setLoading(false);setMessage("Supabase is not configured.");return;}
-    setLoading(true);
-    const [{data:courseRows},{data:bannerRows,error}]=await Promise.all([
-      supabase.from("courses").select("id,slug,name_en").order("name_en"),
-      supabase.from("homepage_banners").select("id,title_en,subtitle_en,cta_en,destination_path,placement,course_id,image_storage_path,is_active,courses(slug)").order("sort_order")
-    ]);
-    setCourses((courseRows||[]) as CourseRow[]);
-    if(error){setMessage(error.message);setAds([]);}else{
-      setAds(((bannerRows||[]) as unknown as BannerRow[]).map(row=>{
-        const relation=Array.isArray(row.courses)?row.courses[0]:row.courses;
-        return {id:row.id,title:row.title_en,subtitle:row.subtitle_en||"",cta:row.cta_en,href:row.destination_path,placement:row.placement,course:slugToCourse(relation?.slug),image:row.image_storage_path||imageChoices[0],active:row.is_active};
-      }));
+  async function load() {
+    const supabase = createClient();
+    if (!supabase) {
+      setLoading(false);
+      setMessage("Supabase is not configured.");
+      return;
     }
+
+    setLoading(true);
+    setMessage("");
+
+    const [courseResult, bannerResult] = await Promise.all([
+      supabase.from("courses").select("id,slug,name_en").eq("is_active", true).order("name_en"),
+      supabase
+        .from("homepage_banners")
+        .select("id,title_en,title_ar,subtitle_en,subtitle_ar,cta_en,cta_ar,destination_path,placement,course_id,image_storage_path,is_active,sort_order")
+        .order("sort_order"),
+    ]);
+
+    if (courseResult.error) setMessage(courseResult.error.message);
+    setCourses((courseResult.data || []) as CourseRow[]);
+
+    if (bannerResult.error) {
+      setMessage(bannerResult.error.message);
+      setAds([]);
+    } else {
+      setAds(
+        ((bannerResult.data || []) as DbBanner[]).map((row) => ({
+          id: row.id,
+          titleEn: row.title_en || "",
+          titleAr: row.title_ar || "",
+          subtitleEn: row.subtitle_en || "",
+          subtitleAr: row.subtitle_ar || "",
+          ctaEn: row.cta_en || "Shop now",
+          ctaAr: row.cta_ar || "تسوق الآن",
+          href: row.destination_path || "/shop",
+          placement: normalizePlacement(row.placement),
+          courseId: row.course_id,
+          image: row.image_storage_path || "",
+          active: row.is_active !== false,
+          sortOrder: Number(row.sort_order || 0),
+        }))
+      );
+    }
+
     setLoading(false);
   }
 
-  useEffect(()=>{void load();},[]);
-  const active=useMemo(()=>ads.filter(a=>a.active).length,[ads]);
+  useEffect(() => {
+    void load();
+  }, []);
 
-  async function save(){
-    if(!editing||!editing.title.trim())return;
-    const supabase=createClient(); if(!supabase)return;
-    setSaving(true);setMessage("");
-    const slug=courseToSlug(editing.course);
-    const courseId=slug?courses.find(c=>c.slug===slug)?.id||null:null;
-    const payload={title_en:editing.title.trim(),subtitle_en:editing.subtitle.trim()||null,cta_en:editing.cta.trim()||"Shop now",destination_path:editing.href.trim()||"/shop",placement:editing.placement,course_id:courseId,image_storage_path:editing.image||null,is_active:editing.active,updated_at:new Date().toISOString()};
-    const result=editing.id
-      ? await supabase.from("homepage_banners").update(payload).eq("id",editing.id)
+  const activeCount = useMemo(() => ads.filter((ad) => ad.active).length, [ads]);
+
+  async function upload(file: File) {
+    const supabase = createClient();
+    if (!supabase || !editing) return;
+
+    setUploading(true);
+    setMessage("");
+    try {
+      const { publicUrl } = await uploadAdminImage(supabase, file, "ads");
+      setEditing((current) => (current ? { ...current, image: publicUrl } : current));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Image upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function onFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) void upload(file);
+  }
+
+  async function save() {
+    if (!editing?.titleEn.trim()) {
+      setMessage("English headline is required.");
+      return;
+    }
+
+    const supabase = createClient();
+    if (!supabase) return;
+
+    setSaving(true);
+    setMessage("");
+
+    const payload = {
+      title_en: editing.titleEn.trim(),
+      title_ar: editing.titleAr.trim() || null,
+      subtitle_en: editing.subtitleEn.trim() || null,
+      subtitle_ar: editing.subtitleAr.trim() || null,
+      cta_en: editing.ctaEn.trim() || "Shop now",
+      cta_ar: editing.ctaAr.trim() || null,
+      destination_path: editing.href.trim() || "/shop",
+      placement: editing.placement,
+      course_id: editing.courseId || null,
+      image_storage_path: editing.image || null,
+      is_active: editing.active,
+      sort_order: Number(editing.sortOrder || 0),
+      updated_at: new Date().toISOString(),
+    };
+
+    const result = editing.id
+      ? await supabase.from("homepage_banners").update(payload).eq("id", editing.id)
       : await supabase.from("homepage_banners").insert(payload);
-    if(result.error)setMessage(result.error.message); else {setEditing(null);await load();window.dispatchEvent(new Event("dento-ads-updated"));}
+
+    if (result.error) {
+      setMessage(result.error.message);
+    } else {
+      setEditing(null);
+      await load();
+      window.dispatchEvent(new Event("dento-ads-updated"));
+    }
+
     setSaving(false);
   }
 
-  async function remove(id:string){
-    if(!confirm("Delete this advertisement permanently?"))return;
-    const supabase=createClient();if(!supabase)return;
-    const {error}=await supabase.from("homepage_banners").delete().eq("id",id);
-    if(error)setMessage(error.message); else {await load();window.dispatchEvent(new Event("dento-ads-updated"));}
+  async function toggle(ad: Banner) {
+    const supabase = createClient();
+    if (!supabase) return;
+    const { error } = await supabase
+      .from("homepage_banners")
+      .update({ is_active: !ad.active, updated_at: new Date().toISOString() })
+      .eq("id", ad.id);
+
+    if (error) setMessage(error.message);
+    else {
+      await load();
+      window.dispatchEvent(new Event("dento-ads-updated"));
+    }
   }
 
-  async function toggle(ad:StoreAd){
-    const supabase=createClient();if(!supabase)return;
-    const {error}=await supabase.from("homepage_banners").update({is_active:!ad.active,updated_at:new Date().toISOString()}).eq("id",ad.id);
-    if(error)setMessage(error.message); else {await load();window.dispatchEvent(new Event("dento-ads-updated"));}
+  async function remove(id: string) {
+    if (!window.confirm("Delete this advertisement?")) return;
+    const supabase = createClient();
+    if (!supabase) return;
+    const { error } = await supabase.from("homepage_banners").delete().eq("id", id);
+    if (error) setMessage(error.message);
+    else {
+      await load();
+      window.dispatchEvent(new Event("dento-ads-updated"));
+    }
   }
 
-  return <>
-    <div className="admin-pagehead"><div><span className="admin-kicker">ADVERTISING</span><h1>Ads & homepage placements</h1><p>Every ad is now saved in Supabase. Create, edit, hide, move or permanently delete it.</p></div><button className="admin-primary" onClick={()=>setEditing({...blank})}><Plus size={16}/> New ad</button></div>
-    {message&&<div className="admin-alert"><div><b>Admin message</b><span>{message}</span></div></div>}
-    <div className="ad-kpi-row"><div><Megaphone/><span><b>{ads.length}</b><small>Total ads</small></span></div><div><Eye/><span><b>{active}</b><small>Currently visible</small></span></div><div><ImageIcon/><span><b>{new Set(ads.map(a=>a.placement)).size}</b><small>Sections used</small></span></div></div>
-    <div className="admin-table-card"><div className="ad-manager-list">{loading?<div className="ad-empty"><Loader2 className="spin"/><h3>Loading live ads…</h3></div>:ads.length===0?<div className="ad-empty"><ImageIcon/><h3>No ads yet</h3><p>Create the first promotion. Pending-price products never become ads automatically.</p><button className="admin-primary" onClick={()=>setEditing({...blank})}><Plus size={15}/> Create ad</button></div>:ads.map(ad=><article className="ad-admin-row" key={ad.id}><div className="ad-admin-thumb"><img src={ad.image} alt=""/></div><div className="ad-admin-main"><div className="ad-admin-title"><b>{ad.title}</b><span className={`badge ${ad.active?"success":"warning"}`}>{ad.active?"Live":"Hidden"}</span></div><p>{ad.subtitle}</p><div className="ad-admin-meta"><span>{adPlacementLabels[ad.placement]}</span><span>{adCourseLabels[ad.course]}</span><span>{ad.cta}</span></div></div><div className="ad-admin-actions"><button className="icon-admin-btn" title={ad.active?"Hide ad":"Show ad"} onClick={()=>void toggle(ad)}>{ad.active?<EyeOff/>:<Eye/>}</button><button className="icon-admin-btn" title="Edit ad" onClick={()=>setEditing({...ad})}><Pencil/></button><button className="icon-admin-btn danger" title="Delete ad" onClick={()=>void remove(ad.id)}><Trash2/></button></div></article>)}</div></div>
-    {editing&&<div className="admin-modal-backdrop"><div className="admin-modal ad-editor"><div className="admin-modal-head"><div><span className="admin-kicker">AD EDITOR</span><h2>{editing.id?"Edit advertisement":"Create advertisement"}</h2></div><button onClick={()=>setEditing(null)}><X/></button></div><div className="ad-editor-grid"><div className="ad-editor-fields"><label>Headline<input value={editing.title} onChange={e=>setEditing({...editing,title:e.target.value})}/></label><label>Supporting text<textarea value={editing.subtitle} onChange={e=>setEditing({...editing,subtitle:e.target.value})}/></label><div className="two-field"><label>Button text<input value={editing.cta} onChange={e=>setEditing({...editing,cta:e.target.value})}/></label><label>Destination<input value={editing.href} onChange={e=>setEditing({...editing,href:e.target.value})}/></label></div><div className="two-field"><label>Website section<select value={editing.placement} onChange={e=>setEditing({...editing,placement:e.target.value as AdPlacement})}>{Object.entries(adPlacementLabels).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label><label>Course targeting<select value={editing.course} onChange={e=>setEditing({...editing,course:e.target.value as AdCourse})}>{Object.entries(adCourseLabels).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label></div><label>Image path / Supabase Storage URL<input value={editing.image} onChange={e=>setEditing({...editing,image:e.target.value})}/></label><label className="ad-switch"><input type="checkbox" checked={editing.active} onChange={e=>setEditing({...editing,active:e.target.checked})}/><span>Publish this ad</span></label></div><div className="ad-image-picker"><b>Supply image</b><p>Choose one of the mapped AIU PDF assets or paste a future Storage URL.</p><div>{imageChoices.map(src=><button type="button" className={editing.image===src?"selected":""} key={src} onClick={()=>setEditing({...editing,image:src})}><img src={src} alt=""/></button>)}</div></div></div><div className="admin-modal-footer"><button className="admin-secondary" onClick={()=>setEditing(null)}>Cancel</button><button className="admin-primary" disabled={saving} onClick={()=>void save()}>{saving?<Loader2 className="spin" size={15}/>:<Save size={15}/>} Save ad</button></div></div></div>}
-  </>;
+  return (
+    <>
+      <div className="admin-pagehead">
+        <div>
+          <span className="admin-kicker">ADVERTISING</span>
+          <h1>Ads & banners</h1>
+          <p>Upload your own artwork, choose where it appears, and publish or hide it whenever you want.</p>
+        </div>
+        <button className="admin-primary" onClick={() => setEditing({ ...blank })}>
+          <Plus size={16} /> New ad
+        </button>
+      </div>
+
+      {message && (
+        <div className="admin-alert">
+          <div>
+            <b>Admin message</b>
+            <span>{message}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="dento-media-kpis">
+        <div><b>{ads.length}</b><span>Total ads</span></div>
+        <div><b>{activeCount}</b><span>Live now</span></div>
+        <div><b>{ads.filter((ad) => Boolean(ad.image)).length}</b><span>With artwork</span></div>
+      </div>
+
+      <div className="admin-table-card">
+        <div className="dento-ad-list">
+          {loading ? (
+            <div className="dento-empty"><Loader2 className="spin" /> Loading ads…</div>
+          ) : ads.length === 0 ? (
+            <div className="dento-empty">
+              <ImageIcon />
+              <b>No ads yet</b>
+              <span>Create the first banner and upload its image from your phone or computer.</span>
+            </div>
+          ) : (
+            ads.map((ad) => (
+              <article className="dento-ad-row" key={ad.id}>
+                <div className="dento-ad-thumb">
+                  {ad.image ? <img src={ad.image} alt="" /> : <ImageIcon />}
+                </div>
+
+                <div className="dento-ad-copy">
+                  <div>
+                    <b>{ad.titleEn}</b>
+                    <span className={`badge ${ad.active ? "success" : "warning"}`}>
+                      {ad.active ? "Live" : "Hidden"}
+                    </span>
+                  </div>
+                  <p>{ad.subtitleEn || "No supporting text"}</p>
+                  <small>
+                    {placementLabels[ad.placement]}
+                    {ad.courseId ? ` • ${courses.find((course) => course.id === ad.courseId)?.name_en || "Course"}` : " • All courses"}
+                  </small>
+                </div>
+
+                <div className="dento-row-actions">
+                  <button className="icon-admin-btn" title={ad.active ? "Hide" : "Publish"} onClick={() => void toggle(ad)}>
+                    {ad.active ? <EyeOff /> : <Eye />}
+                  </button>
+                  <button className="icon-admin-btn" title="Edit" onClick={() => setEditing({ ...ad })}>
+                    <Pencil />
+                  </button>
+                  <button className="icon-admin-btn danger" title="Delete" onClick={() => void remove(ad.id)}>
+                    <Trash2 />
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </div>
+
+      {editing && (
+        <div className="admin-modal-backdrop">
+          <div className="admin-modal dento-media-modal">
+            <div className="admin-modal-head">
+              <div>
+                <span className="admin-kicker">AD EDITOR</span>
+                <h2>{editing.id ? "Edit advertisement" : "Create advertisement"}</h2>
+              </div>
+              <button onClick={() => setEditing(null)}><X /></button>
+            </div>
+
+            <div className="dento-editor-grid">
+              <div className="dento-form-stack">
+                <label>
+                  Headline — English
+                  <input value={editing.titleEn} onChange={(e) => setEditing({ ...editing, titleEn: e.target.value })} />
+                </label>
+                <label>
+                  Headline — Arabic
+                  <input dir="rtl" value={editing.titleAr} onChange={(e) => setEditing({ ...editing, titleAr: e.target.value })} />
+                </label>
+                <label>
+                  Supporting text — English
+                  <textarea value={editing.subtitleEn} onChange={(e) => setEditing({ ...editing, subtitleEn: e.target.value })} />
+                </label>
+                <label>
+                  Supporting text — Arabic
+                  <textarea dir="rtl" value={editing.subtitleAr} onChange={(e) => setEditing({ ...editing, subtitleAr: e.target.value })} />
+                </label>
+
+                <div className="two-field">
+                  <label>
+                    Button text
+                    <input value={editing.ctaEn} onChange={(e) => setEditing({ ...editing, ctaEn: e.target.value })} />
+                  </label>
+                  <label>
+                    Arabic button
+                    <input dir="rtl" value={editing.ctaAr} onChange={(e) => setEditing({ ...editing, ctaAr: e.target.value })} />
+                  </label>
+                </div>
+
+                <label>
+                  Destination
+                  <input value={editing.href} onChange={(e) => setEditing({ ...editing, href: e.target.value })} placeholder="/shop" />
+                </label>
+
+                <div className="two-field">
+                  <label>
+                    Placement
+                    <select value={editing.placement} onChange={(e) => setEditing({ ...editing, placement: e.target.value as Placement })}>
+                      {Object.entries(placementLabels).map(([value, label]) => (
+                        <option value={value} key={value}>{label}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    Course target
+                    <select
+                      value={editing.courseId || ""}
+                      onChange={(e) => setEditing({ ...editing, courseId: e.target.value || null })}
+                    >
+                      <option value="">All courses</option>
+                      {courses.map((course) => (
+                        <option value={course.id} key={course.id}>{course.name_en}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="two-field">
+                  <label>
+                    Sort order
+                    <input
+                      type="number"
+                      value={editing.sortOrder}
+                      onChange={(e) => setEditing({ ...editing, sortOrder: Number(e.target.value || 0) })}
+                    />
+                  </label>
+                  <label className="dento-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={editing.active}
+                      onChange={(e) => setEditing({ ...editing, active: e.target.checked })}
+                    />
+                    <span>Publish this ad</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="dento-upload-panel">
+                <b>Advertisement image</b>
+                <p>Upload JPG, PNG, WEBP or GIF. Maximum 8 MB.</p>
+
+                <div className="dento-upload-preview">
+                  {editing.image ? <img src={editing.image} alt="Advertisement preview" /> : <ImageIcon />}
+                </div>
+
+                <label className={`dento-upload-button ${uploading ? "disabled" : ""}`}>
+                  {uploading ? <Loader2 className="spin" size={17} /> : <UploadCloud size={17} />}
+                  {uploading ? "Uploading…" : "Upload image"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    hidden
+                    disabled={uploading}
+                    onChange={onFile}
+                  />
+                </label>
+
+                {editing.image && (
+                  <button className="admin-secondary" type="button" onClick={() => setEditing({ ...editing, image: "" })}>
+                    Remove image
+                  </button>
+                )}
+
+                <label>
+                  Or paste image URL
+                  <input value={editing.image} onChange={(e) => setEditing({ ...editing, image: e.target.value })} />
+                </label>
+              </div>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button className="admin-secondary" onClick={() => setEditing(null)}>Cancel</button>
+              <button className="admin-primary" disabled={saving || uploading} onClick={() => void save()}>
+                {saving ? <Loader2 className="spin" size={15} /> : <Save size={15} />}
+                Save ad
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

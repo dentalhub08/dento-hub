@@ -1,2 +1,3 @@
 import { AdminBanners } from "@/components/admin-banners";
-export default function Page(){return <AdminBanners/>}
+export const dynamic = "force-dynamic";
+export default function Page(){ return <AdminBanners/>; }

@@ -1,0 +1,408 @@
+
+/* DENTO_ADMIN_MOBILE_MEDIA_BUNDLES_V1_START */
+
+/* Shared admin media/bundle UI */
+.dento-media-kpis{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin:0 0 16px;
+}
+.dento-media-kpis>div{
+  background:#fff;
+  border:1px solid #dfe9e8;
+  border-radius:14px;
+  padding:15px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.dento-media-kpis b{font-size:22px;color:#0b3039}
+.dento-media-kpis span{font-size:10px;color:#70868c;font-weight:700}
+.dento-ad-list,.dento-bundle-list{display:flex;flex-direction:column}
+.dento-ad-row,.dento-bundle-row{
+  display:grid;
+  grid-template-columns:90px minmax(0,1fr) auto;
+  gap:16px;
+  align-items:center;
+  padding:14px 16px;
+  border-bottom:1px solid #e7eeee;
+  background:#fff;
+}
+.dento-ad-row:last-child,.dento-bundle-row:last-child{border-bottom:0}
+.dento-ad-thumb,.dento-bundle-thumb{
+  width:90px;
+  height:68px;
+  overflow:hidden;
+  border-radius:12px;
+  background:#edf7f5;
+  color:#66a69e;
+  display:grid;
+  place-items:center;
+}
+.dento-ad-thumb img,.dento-bundle-thumb img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.dento-ad-copy,.dento-bundle-copy{min-width:0}
+.dento-ad-copy>div,.dento-bundle-copy>div{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.dento-ad-copy b,.dento-bundle-copy b{font-size:12px;color:#0d3038}
+.dento-ad-copy p,.dento-bundle-copy p{margin:5px 0;color:#5e777d;font-size:10px}
+.dento-ad-copy small,.dento-bundle-copy small{color:#829499;font-size:9px}
+.dento-row-actions{display:flex;align-items:center;gap:6px}
+.dento-empty{
+  min-height:180px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:25px;
+  text-align:center;
+  color:#71868b;
+}
+.dento-empty b{color:#12353d;font-size:13px}
+.dento-empty span{font-size:10px;max-width:380px}
+.dento-media-modal{width:min(1050px,calc(100vw - 36px));max-height:92vh;overflow:auto}
+.dento-bundle-modal{width:min(1180px,calc(100vw - 36px));max-height:92vh;overflow:auto}
+.dento-editor-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);
+  gap:20px;
+  padding:18px;
+}
+.dento-bundle-editor{
+  display:grid;
+  grid-template-columns:minmax(300px,.72fr) minmax(0,1.28fr);
+  gap:20px;
+  padding:18px;
+}
+.dento-form-stack{display:flex;flex-direction:column;gap:12px}
+.dento-form-stack>label,.dento-upload-panel>label{
+  display:flex;flex-direction:column;gap:6px;
+  color:#39555d;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;
+}
+.dento-form-stack input,.dento-form-stack textarea,.dento-form-stack select,
+.dento-upload-panel input{
+  width:100%;
+  min-height:42px;
+  border:1px solid #d6e3e2;
+  border-radius:10px;
+  background:#fff;
+  padding:10px 12px;
+  color:#12333b;
+  font:inherit;
+  font-size:11px;
+  text-transform:none;
+  letter-spacing:0;
+  outline:none;
+}
+.dento-form-stack textarea{min-height:78px;resize:vertical}
+.dento-form-stack input:focus,.dento-form-stack textarea:focus,.dento-form-stack select:focus,
+.dento-upload-panel input:focus{border-color:#0aa294;box-shadow:0 0 0 3px rgba(10,162,148,.10)}
+.dento-upload-panel{
+  align-self:start;
+  display:flex;
+  flex-direction:column;
+  gap:11px;
+  border:1px solid #dfe9e8;
+  background:#f8fbfa;
+  border-radius:14px;
+  padding:14px;
+}
+.dento-upload-panel>b{color:#15373f;font-size:11px}
+.dento-upload-panel>p{margin:0;color:#73898e;font-size:9px;line-height:1.5}
+.dento-upload-preview{
+  width:100%;
+  aspect-ratio:16/9;
+  border:1px dashed #c9dcda;
+  border-radius:12px;
+  background:#fff;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  color:#79aaa4;
+}
+.dento-upload-preview.bundle{aspect-ratio:4/3}
+.dento-upload-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.dento-upload-button{
+  min-height:42px;
+  border-radius:10px;
+  background:#073944;
+  color:#fff;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  cursor:pointer;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  font-size:10px!important;
+}
+.dento-upload-button.disabled{opacity:.6;pointer-events:none}
+.dento-checkbox{
+  min-height:42px;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center;
+  gap:8px;
+  border:1px solid #dfe7e7;
+  border-radius:10px;
+  padding:0 11px;
+  text-transform:none!important;
+  letter-spacing:0!important;
+}
+.dento-checkbox input{width:16px!important;min-height:16px!important;height:16px;padding:0}
+.dento-toggle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dento-choice-block{
+  border:1px solid #e1eaea;border-radius:12px;padding:12px;
+}
+.dento-choice-block>b{display:block;font-size:10px;color:#24464e;margin-bottom:9px}
+.dento-chip-options{display:flex;flex-wrap:wrap;gap:6px}
+.dento-chip-options button{
+  border:1px solid #d9e5e4;background:#fff;color:#526c72;border-radius:999px;
+  padding:7px 10px;font-size:9px;font-weight:800;cursor:pointer;
+}
+.dento-chip-options button.selected{background:#e7f7f4;border-color:#91d6cd;color:#087e73}
+.dento-bundle-products{display:flex;flex-direction:column;gap:14px;min-width:0}
+.dento-upload-panel.compact{display:grid;grid-template-columns:150px minmax(0,1fr);align-items:center}
+.dento-upload-panel.compact>b{grid-column:1/-1}
+.dento-upload-panel.compact .dento-upload-preview{grid-row:2/5}
+.dento-selected-products,.dento-product-picker{
+  border:1px solid #dfe9e8;border-radius:14px;background:#fff;overflow:hidden;
+}
+.dento-section-title{
+  min-height:54px;padding:10px 13px;border-bottom:1px solid #e8eeee;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.dento-section-title>div{display:flex;flex-direction:column;gap:2px}
+.dento-section-title b{font-size:11px;color:#15363e}
+.dento-section-title small{font-size:8px;color:#809398}
+.dento-section-title strong{font-size:10px;color:#078b7f}
+.dento-selected-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 76px 34px;
+  gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid #edf2f2;
+}
+.dento-selected-row:last-child{border-bottom:0}
+.dento-selected-row>div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.dento-selected-row b{font-size:10px;color:#17363d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dento-selected-row small{font-size:8px;color:#7c9095}
+.dento-selected-row>label{font-size:8px;color:#71878c;font-weight:800}
+.dento-selected-row input{
+  width:62px;height:32px;border:1px solid #dce7e6;border-radius:8px;padding:5px 7px;
+}
+.dento-mini-empty{padding:22px;text-align:center;color:#839599;font-size:9px}
+.dento-product-picker>.admin-search{margin:10px}
+.dento-product-results{max-height:300px;overflow:auto;border-top:1px solid #edf2f2}
+.dento-product-results>button{
+  width:100%;border:0;border-bottom:1px solid #edf2f2;background:#fff;
+  padding:10px 12px;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;text-align:left;cursor:pointer;color:#17363d;
+}
+.dento-product-results>button:hover{background:#f3faf8}
+.dento-product-results>button>span:first-child{min-width:0;display:flex;flex-direction:column;gap:2px}
+.dento-product-results b{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dento-product-results small{font-size:8px;color:#819397}
+.dento-product-results>button>span:last-child{display:flex;align-items:center;gap:4px;color:#078b7f;font-size:8px;font-weight:900;white-space:nowrap}
+
+/* Admin becomes genuinely usable on phones. */
+@media(max-width:700px){
+  .admin-portal{overflow-x:hidden!important}
+  .admin-app{
+    display:block!important;
+    min-height:100vh!important;
+    width:100%!important;
+  }
+  .admin-sidebar{
+    display:flex!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    position:sticky!important;
+    top:0!important;
+    z-index:160!important;
+    padding:7px 9px 6px!important;
+    flex-direction:column!important;
+    overflow:visible!important;
+    border-right:0!important;
+    border-bottom:1px solid rgba(255,255,255,.12)!important;
+  }
+  .admin-sidebar .admin-brand,
+  .admin-sidebar .admin-help{
+    display:none!important;
+  }
+  .admin-sidebar nav{
+    display:flex!important;
+    flex-direction:row!important;
+    gap:5px!important;
+    width:100%!important;
+    overflow-x:auto!important;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding:0 0 2px!important;
+  }
+  .admin-sidebar nav::-webkit-scrollbar{display:none}
+  .admin-sidebar nav a{
+    flex:0 0 auto!important;
+    width:auto!important;
+    min-width:max-content!important;
+    min-height:39px!important;
+    padding:8px 10px!important;
+    border-radius:9px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:6px!important;
+    font-size:9px!important;
+    white-space:nowrap!important;
+  }
+  .admin-sidebar nav a svg{width:15px!important;height:15px!important}
+  .admin-main{width:100%!important;min-width:0!important}
+  .admin-top{
+    position:sticky!important;
+    top:52px!important;
+    z-index:150!important;
+    width:100%!important;
+    min-height:54px!important;
+    height:auto!important;
+    padding:7px 10px!important;
+    gap:8px!important;
+  }
+  .admin-top>.admin-search:not(.boxed){display:none!important}
+  .admin-top-actions,.admin-user{
+    margin-left:auto!important;
+    max-width:100%!important;
+  }
+  .admin-user-trigger{
+    max-width:170px!important;
+  }
+  .admin-content{
+    width:100%!important;
+    max-width:none!important;
+    padding:13px 10px 28px!important;
+    overflow:hidden!important;
+  }
+  .admin-pagehead{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:11px!important;
+    margin-bottom:14px!important;
+  }
+  .admin-pagehead h1{font-size:27px!important;line-height:1.05!important}
+  .admin-pagehead p{font-size:10px!important;line-height:1.5!important}
+  .admin-pagehead>.page-actions,
+  .admin-pagehead>button,
+  .admin-pagehead>a{
+    width:100%!important;
+  }
+  .page-actions{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:7px!important;
+  }
+  .admin-primary,.admin-secondary{
+    min-height:40px!important;
+    justify-content:center!important;
+  }
+  .kpi-grid,.dashboard-grid,.ad-kpi-row,.dento-media-kpis{
+    grid-template-columns:1fr!important;
+  }
+  .admin-table-card{
+    width:100%!important;
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+  .admin-table-scroll{
+    width:100%!important;
+    overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  .admin-table{min-width:760px!important}
+  .table-tools{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    padding:9px!important;
+    gap:7px!important;
+  }
+  .table-tools>.admin-search.boxed{
+    flex:1 1 100%!important;
+    width:100%!important;
+  }
+  .dento-ad-row,.dento-bundle-row{
+    grid-template-columns:68px minmax(0,1fr)!important;
+    gap:10px!important;
+    padding:11px!important;
+  }
+  .dento-ad-thumb,.dento-bundle-thumb{
+    width:68px!important;height:58px!important;
+  }
+  .dento-row-actions{
+    grid-column:1/-1!important;
+    justify-content:flex-end!important;
+    border-top:1px solid #edf2f2;
+    padding-top:8px;
+  }
+  .admin-modal-backdrop{
+    padding:8px!important;
+    align-items:flex-end!important;
+  }
+  .admin-modal,
+  .dento-media-modal,
+  .dento-bundle-modal{
+    width:100%!important;
+    max-width:none!important;
+    max-height:94vh!important;
+    border-radius:17px 17px 10px 10px!important;
+    overflow:auto!important;
+  }
+  .admin-modal-head{
+    position:sticky!important;
+    top:0!important;
+    z-index:5!important;
+    background:#fff!important;
+  }
+  .admin-modal-footer{
+    position:sticky!important;
+    bottom:0!important;
+    z-index:5!important;
+    background:#fff!important;
+    gap:7px!important;
+  }
+  .dento-editor-grid,
+  .dento-bundle-editor{
+    grid-template-columns:1fr!important;
+    padding:12px!important;
+    gap:14px!important;
+  }
+  .two-field,.dento-toggle-grid{
+    grid-template-columns:1fr!important;
+  }
+  .dento-upload-panel.compact{
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  .dento-upload-panel.compact .dento-upload-preview{
+    width:100%!important;
+  }
+  .dento-selected-row{
+    grid-template-columns:minmax(0,1fr) 66px 34px!important;
+    gap:6px!important;
+  }
+  .dento-section-title{
+    align-items:flex-start!important;
+    flex-direction:column!important;
+  }
+  .admin-user-dropdown,.admin-orders-popover{
+    position:fixed!important;
+    left:10px!important;
+    right:10px!important;
+    top:112px!important;
+    width:auto!important;
+    max-width:none!important;
+  }
+}
+/* DENTO_ADMIN_MOBILE_MEDIA_BUNDLES_V1_END */
