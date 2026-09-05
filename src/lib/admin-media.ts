@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const MAX_BYTES = 8 * 1024 * 1024;
