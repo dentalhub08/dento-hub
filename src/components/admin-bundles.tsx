@@ -123,7 +123,79 @@ export function AdminBundles() {
     setLoading(true);
     setMessage("");
 
-    const [bundleResult, itemResult, courseLinkResult, yearResult, productResult, coursesResult] =
+    // IMPORTANT:
+    // Catalog products load independently from bundle tables.
+    // A missing/old bundle migration must NEVER make the product picker empty.
+    let productRows: Array<{
+      id: string;
+      source_name?: string | null;
+      source_row_no?: number | null;
+      selling_price_egp?: number | string | null;
+      is_available?: boolean | null;
+      status?: string | null;
+    }> = [];
+
+    let productErrorMessage = "";
+
+    const fullProductResult = await supabase
+      .from("products")
+      .select("id,source_row_no,source_name,selling_price_egp,is_available,status")
+      .order("source_row_no", { ascending: true });
+
+    if (!fullProductResult.error) {
+      productRows = (fullProductResult.data || []) as typeof productRows;
+    } else {
+      // Fallback for an older schema: request only the columns every DENTO HUB
+      // catalog version is expected to have.
+      const fallbackProductResult = await supabase
+        .from("products")
+        .select("id,source_name,selling_price_egp,status")
+        .order("source_name", { ascending: true });
+
+      if (!fallbackProductResult.error) {
+        productRows = (fallbackProductResult.data || []) as typeof productRows;
+      } else {
+        productErrorMessage =
+          fallbackProductResult.error.message ||
+          fullProductResult.error.message ||
+          "Could not load products.";
+      }
+    }
+
+    setProducts(
+      productRows.map((row, index) => ({
+        id: row.id,
+        name: titleCaseSource(row.source_name || `Product ${index + 1}`),
+        price:
+          row.selling_price_egp === null ||
+          row.selling_price_egp === undefined
+            ? null
+            : Number(row.selling_price_egp),
+        available:
+          typeof row.is_available === "boolean"
+            ? row.is_available
+            : row.status !== "archived",
+        status: row.status || "active",
+        sourceRow: row.source_row_no ?? null,
+      }))
+    );
+
+    // Courses also load independently.
+    const coursesResult = await supabase
+      .from("courses")
+      .select("id,name_en")
+      .eq("is_active", true)
+      .order("name_en");
+
+    if (!coursesResult.error) {
+      setCourses((coursesResult.data || []) as Course[]);
+    } else {
+      setCourses([]);
+    }
+
+    // Bundle data is secondary. If these tables are missing or an old
+    // migration is installed, keep the product picker alive and show a message.
+    const [bundleResult, itemResult, courseLinkResult, yearResult] =
       await Promise.all([
         supabase
           .from("bundles")
@@ -132,49 +204,27 @@ export function AdminBundles() {
         supabase.from("bundle_items").select("bundle_id,product_id,quantity"),
         supabase.from("bundle_courses").select("bundle_id,course_id"),
         supabase.from("bundle_academic_years").select("bundle_id,academic_year"),
-        supabase
-          .from("products")
-          .select("id,source_row_no,source_name,selling_price_egp,is_available,status")
-          .order("source_row_no", { ascending: true }),
-        supabase.from("courses").select("id,name_en").eq("is_active", true).order("name_en"),
       ]);
 
-    const firstError =
+    const bundleError =
       bundleResult.error ||
       itemResult.error ||
       courseLinkResult.error ||
-      yearResult.error ||
-      productResult.error ||
-      coursesResult.error;
+      yearResult.error;
 
-    if (firstError) {
-      setMessage(`${firstError.message} — Run migration 005_admin_media_bundles.sql if you have not run it yet.`);
+    if (bundleError) {
       setBundles([]);
+      const pieces = [];
+      if (productErrorMessage) {
+        pieces.push(`Catalog error: ${productErrorMessage}`);
+      }
+      pieces.push(
+        `Bundle tables: ${bundleError.message}. Run migration 005_admin_media_bundles.sql if needed.`
+      );
+      setMessage(pieces.join(" "));
       setLoading(false);
       return;
     }
-
-    const productRows = (productResult.data || []) as Array<{
-      id: string;
-      source_name: string | null;
-      source_row_no: number | null;
-      selling_price_egp: number | string | null;
-      is_available: boolean;
-      status: string;
-    }>;
-
-    setProducts(
-      productRows.map((row) => ({
-        id: row.id,
-        name: titleCaseSource(row.source_name || "Unnamed product"),
-        price: row.selling_price_egp === null ? null : Number(row.selling_price_egp),
-        available: row.is_available,
-        status: row.status,
-        sourceRow: row.source_row_no,
-      }))
-    );
-
-    setCourses((coursesResult.data || []) as Course[]);
 
     const itemRows = (itemResult.data || []) as DbBundleItem[];
     const courseRows = (courseLinkResult.data || []) as DbBundleCourse[];
@@ -195,7 +245,10 @@ export function AdminBundles() {
         isFeatured: bundle.is_featured,
         items: itemRows
           .filter((item) => item.bundle_id === bundle.id)
-          .map((item) => ({ productId: item.product_id, quantity: Number(item.quantity || 1) })),
+          .map((item) => ({
+            productId: item.product_id,
+            quantity: Number(item.quantity || 1),
+          })),
         courseIds: courseRows
           .filter((link) => link.bundle_id === bundle.id)
           .map((link) => link.course_id),
@@ -204,6 +257,10 @@ export function AdminBundles() {
           .map((link) => Number(link.academic_year)),
       }))
     );
+
+    if (productErrorMessage) {
+      setMessage(`Catalog error: ${productErrorMessage}`);
+    }
 
     setLoading(false);
   }
