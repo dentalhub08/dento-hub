@@ -26,7 +26,7 @@ export type DeliveryLocation = {
 };
 
 export const deliveryLocations: DeliveryLocation[] = [
-  { id: "aiu", name: "Alamein International University", ar: "جامعة العلمين الدولية", kind: "university", fee: 50, short: "AIU" },
+  { id: "aiu", name: "Alamein International University", ar: "جامعة العلمين الدولية", kind: "university", fee: 75, short: "AIU" },
   { id: "alexandria", name: "Alexandria", ar: "الإسكندرية", kind: "governorate" },
   { id: "aswan", name: "Aswan", ar: "أسوان", kind: "governorate" },
   { id: "asyut", name: "Asyut", ar: "أسيوط", kind: "governorate" },

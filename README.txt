@@ -1,26 +1,36 @@
-DENTO HUB — BUNDLE PRODUCT PICKER FIX
+DENTO HUB — FINAL DELIVERY PRICE = 75 EGP
 
-Cause fixed:
-AdminBundles previously loaded products and all bundle tables in one Promise.all.
-If ANY bundle table query failed, the function returned before setProducts(),
-leaving the picker at "0 shown / 0 total".
+Final business rule:
+- ALL Alexandria Governorate deliveries = 75 EGP
+- Alamein International University = 75 EGP
 
-This patch:
-- loads products FIRST and independently
-- uses a fallback product query for older schemas
-- keeps all catalog products visible even if a bundle table has an error
-- loads courses independently
-- shows bundle migration errors without wiping the catalog picker
+1) SUPABASE
+Open Supabase > SQL Editor.
+Run:
 
-Apply from inside dento-hub-app:
+supabase/migrations/008_alexandria_aiu_75.sql
 
-Expand-Archive "$env:USERPROFILE\Downloads\DENTO_HUB_BUNDLE_PRODUCTS_VISIBLE_FIX.zip" -DestinationPath "." -Force
+This updates:
+- Alexandria governorate rule -> 75
+- existing Alexandria city rules -> 75
+- Alamein International University override -> 75
+- creates the missing rule if needed
 
+2) OPTIONAL CODE FALLBACK
+From inside dento-hub-app:
+
+Expand-Archive "$env:USERPROFILE\Downloads\DENTO_HUB_FINAL_DELIVERY_75.zip" -DestinationPath "." -Force
+
+node .\set-delivery-fallback-75.mjs
+
+3) BUILD
 npm run build:cloudflare
 
-If successful:
-git add src/components/admin-bundles.tsx
-git commit -m "Fix bundle product picker loading"
+4) PUSH
+git add .
+git commit -m "Set Alexandria and AIU delivery to 75 EGP"
 git push origin main
 
-No Cloudflare/Supabase auth settings are changed.
+After deploy:
+- choose any Alexandria address -> Delivery should show EGP 75
+- choose Alamein International University -> Delivery should show EGP 75
