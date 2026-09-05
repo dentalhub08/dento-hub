@@ -181,6 +181,7 @@ export function CheckoutClient() {
     deliveryLocation,
     setDeliveryLocation,
     showToast,
+    removeFromCart,
   } = useStore();
 
   const [auth, setAuth] = useState<"loading" | "yes" | "no">("loading");
@@ -199,6 +200,15 @@ export function CheckoutClient() {
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressError, setAddressError] = useState("");
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState("");
+  const [placedOrder, setPlacedOrder] = useState<{
+    id: string;
+    order_number: string;
+    subtotal: number;
+    delivery_fee: number;
+    grand_total: number;
+  } | null>(null);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const selectedLocation = deliveryLocations.find((item) => item.id === deliveryLocation);
@@ -569,6 +579,119 @@ export function CheckoutClient() {
       .join(", ");
   }
 
+  async function placeOrder() {
+    if (!selectedAddress || placingOrder) return;
+
+    const supabase = createClient();
+    if (!supabase) {
+      setOrderError("Checkout is temporarily unavailable. Please refresh and try again.");
+      return;
+    }
+
+    const items = cart
+      .map((item) => ({
+        source_row_no: Number(item.id),
+        quantity: Number(item.quantity),
+      }))
+      .filter(
+        (item) =>
+          Number.isFinite(item.source_row_no) &&
+          Number.isInteger(item.source_row_no) &&
+          item.source_row_no > 0 &&
+          Number.isFinite(item.quantity) &&
+          item.quantity > 0
+      );
+
+    if (!items.length || items.length !== cart.length) {
+      setOrderError("One or more cart items could not be verified. Remove them and add them again.");
+      return;
+    }
+
+    setPlacingOrder(true);
+    setOrderError("");
+
+    const { data, error } = await supabase.rpc("place_order_v1", {
+      p_address_id: selectedAddress.id,
+      p_items: items,
+    });
+
+    if (error) {
+      setOrderError(
+        error.message ||
+          "We could not place the order. Please review your cart and try again."
+      );
+      setPlacingOrder(false);
+      return;
+    }
+
+    const order = data as {
+      id: string;
+      order_number: string;
+      subtotal: number | string;
+      delivery_fee: number | string;
+      grand_total: number | string;
+    };
+
+    setPlacedOrder({
+      id: String(order.id),
+      order_number: String(order.order_number),
+      subtotal: Number(order.subtotal),
+      delivery_fee: Number(order.delivery_fee),
+      grand_total: Number(order.grand_total),
+    });
+
+    // The RPC clears the database cart transactionally.
+    // Clear the browser/store copy after the order exists.
+    for (const item of cart) {
+      removeFromCart(item.id);
+    }
+
+    showToast?.(`Order ${order.order_number} placed successfully`);
+    setPlacingOrder(false);
+  }
+
+  if (placedOrder) {
+    return (
+      <main className="shell checkout-gate">
+        <div className="gate-card checkout-success-card">
+          <div className="gate-icon">
+            <ShieldCheck />
+          </div>
+          <span className="section-kicker">ORDER CONFIRMED</span>
+          <h1>Thank you. Your order is in.</h1>
+          <p>
+            Order <b>{placedOrder.order_number}</b> was created successfully and
+            is now pending confirmation.
+          </p>
+
+          <div className="checkout-success-totals">
+            <div>
+              <span>Subtotal</span>
+              <b>{egp(placedOrder.subtotal)}</b>
+            </div>
+            <div>
+              <span>Delivery</span>
+              <b>{egp(placedOrder.delivery_fee)}</b>
+            </div>
+            <div>
+              <span>Total</span>
+              <b>{egp(placedOrder.grand_total)}</b>
+            </div>
+          </div>
+
+          <div className="gate-actions">
+            <Link className="btn-primary" href="/account/orders">
+              View my orders <ArrowRight size={18} />
+            </Link>
+            <Link className="btn-secondary" href="/shop">
+              Continue shopping
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!cart.length) {
     return (
       <main className="shell empty-state">
@@ -715,10 +838,26 @@ export function CheckoutClient() {
             <b>{egp(subtotal + (deliveryFee ?? 0))}</b>
           </div>
 
-          <button className="btn-primary wide" disabled>
-            {selectedAddress
-              ? "Address selected — ready for order review"
-              : "Choose address to place order"}
+          {orderError && (
+            <div className="checkout-order-error">{orderError}</div>
+          )}
+
+          <button
+            type="button"
+            className="btn-primary wide"
+            disabled={!selectedAddress || placingOrder}
+            onClick={() => void placeOrder()}
+          >
+            {placingOrder ? (
+              <>
+                <Loader2 className="spin" size={17} />
+                Placing order…
+              </>
+            ) : selectedAddress ? (
+              "Place order — Cash on delivery"
+            ) : (
+              "Choose address to place order"
+            )}
           </button>
         </aside>
       </main>
