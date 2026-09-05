@@ -1,0 +1,320 @@
+/* DENTO_CHECKOUT_ADDRESS_BOOK_V1_START */
+
+.checkout-address-copy{min-width:0;flex:1}
+.checkout-block.has-address{border-color:#b8e5dd;background:#fbfefd}
+.checkout-selected-address{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  margin:8px 0 12px;
+  color:#536b72;
+  font-size:10px;
+  line-height:1.45;
+}
+.checkout-selected-address strong{color:#17353d;font-size:11px}
+.checkout-selected-head{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.checkout-selected-head>b{font-size:11px;color:#0b8579}
+.checkout-address-button{
+  min-height:34px;
+  padding:0 12px;
+  border:1px solid #cfe0df;
+  border-radius:9px;
+  background:#fff;
+  color:#143942;
+  font-size:9px;
+  font-weight:900;
+}
+.checkout-address-button:hover{border-color:#7ccfc4;background:#f3fbf9}
+
+.checkout-address-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  background:rgba(7,31,38,.46);
+  backdrop-filter:blur(5px);
+  display:flex;
+  align-items:stretch;
+  justify-content:flex-end;
+}
+.checkout-address-panel{
+  width:min(680px,94vw);
+  height:100%;
+  background:#fff;
+  box-shadow:-26px 0 75px rgba(8,35,43,.2);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.checkout-address-panel-head{
+  min-height:84px;
+  padding:18px 22px;
+  border-bottom:1px solid #e4ecec;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  flex:0 0 auto;
+}
+.checkout-address-panel-head h2{
+  margin:5px 0 0;
+  font-size:25px;
+  letter-spacing:-1px;
+}
+.checkout-address-close{
+  width:40px;
+  height:40px;
+  border:1px solid #dce7e6;
+  border-radius:11px;
+  background:#f7faf9;
+  color:#294b53;
+  display:grid;
+  place-items:center;
+}
+.checkout-address-book,
+.checkout-address-form-wrap{
+  flex:1;
+  overflow:auto;
+  min-height:0;
+  padding:20px 22px 28px;
+}
+.checkout-address-book-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  margin-bottom:15px;
+}
+.checkout-address-book-top>div{display:flex;flex-direction:column;gap:3px}
+.checkout-address-book-top b{font-size:12px;color:#15363e}
+.checkout-address-book-top span{font-size:9px;color:#7f9296}
+.checkout-new-address{
+  min-height:38px;
+  padding:0 12px;
+  border:1px solid #cce0de;
+  border-radius:10px;
+  background:#eef9f6;
+  color:#087e73;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:9px;
+  font-weight:900;
+}
+.checkout-address-cards{display:flex;flex-direction:column;gap:10px}
+.checkout-address-card{
+  border:1px solid #dfe8e8;
+  border-radius:15px;
+  padding:14px;
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) auto;
+  gap:12px;
+  align-items:start;
+  background:#fff;
+  transition:.15s ease;
+}
+.checkout-address-card:hover{border-color:#b8d9d4;box-shadow:0 9px 26px rgba(17,52,61,.06)}
+.checkout-address-card.selected{border-color:#72cfc4;background:#f7fcfb;box-shadow:0 0 0 2px rgba(9,151,136,.07)}
+.checkout-address-card-icon{
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  background:#eaf8f5;
+  color:#078e80;
+  display:grid;
+  place-items:center;
+}
+.checkout-address-card-copy{min-width:0;display:flex;flex-direction:column;gap:3px}
+.checkout-address-card-copy>div{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px}
+.checkout-address-card-copy>b{font-size:11px;color:#15343c}
+.checkout-address-card-copy strong{font-size:10px;color:#24474f}
+.checkout-address-card-copy span,
+.checkout-address-card-copy small{font-size:9px;color:#73878c;line-height:1.4}
+.checkout-address-card-actions{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+}
+.checkout-edit-address,
+.checkout-use-address{
+  min-height:32px;
+  border-radius:8px;
+  padding:0 9px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  font-size:8px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.checkout-edit-address{border:1px solid #dce7e6;background:#fff;color:#5b7177}
+.checkout-use-address{border:1px solid #0a9184;background:#0a9184;color:#fff}
+.checkout-address-empty{
+  min-height:330px;
+  border:1px dashed #d7e5e3;
+  border-radius:16px;
+  background:#fafdfc;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  text-align:center;
+  color:#7a8e93;
+  padding:25px;
+}
+.checkout-address-empty b{font-size:12px;color:#17363e}
+.checkout-address-empty span{font-size:9px;max-width:300px;line-height:1.5}
+.checkout-address-empty .btn-primary{margin-top:8px}
+
+.checkout-address-back{
+  border:0;
+  padding:0;
+  background:transparent;
+  color:#527078;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  font-size:9px;
+  font-weight:900;
+  margin-bottom:16px;
+}
+.checkout-address-form{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.checkout-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+.checkout-field>span{
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:900;
+  color:#37545c;
+}
+.checkout-field em{
+  font-style:normal;
+  color:#91a0a3;
+  font-weight:700;
+  text-transform:none;
+  letter-spacing:0;
+}
+.checkout-field input,
+.checkout-field select,
+.checkout-field textarea{
+  width:100%;
+  min-height:44px;
+  border:1px solid #d8e5e4;
+  border-radius:10px;
+  background:#fff;
+  color:#14353d;
+  padding:10px 11px;
+  font-size:10px;
+  outline:0;
+}
+.checkout-field textarea{min-height:84px;resize:vertical}
+.checkout-field input:focus,
+.checkout-field select:focus,
+.checkout-field textarea:focus{
+  border-color:#52c6b9;
+  box-shadow:0 0 0 3px rgba(10,157,141,.09);
+}
+.checkout-span-2{grid-column:1/-1}
+.checkout-default-checkbox{
+  min-height:54px;
+  border:1px solid #dfe8e8;
+  border-radius:11px;
+  padding:10px 12px;
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  background:#fbfdfd;
+}
+.checkout-default-checkbox input{width:16px;height:16px;margin-top:2px;accent-color:#0a9688}
+.checkout-default-checkbox>span{display:flex;flex-direction:column;gap:2px}
+.checkout-default-checkbox b{font-size:9px;color:#24464e}
+.checkout-default-checkbox small{font-size:8px;color:#7f9195}
+.checkout-address-error{
+  margin-top:12px;
+  border:1px solid #f1c7bc;
+  background:#fff5f1;
+  color:#a44936;
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:9px;
+  font-weight:700;
+}
+.checkout-address-form-actions{
+  position:sticky;
+  bottom:-28px;
+  margin:20px -22px -28px;
+  padding:13px 22px;
+  border-top:1px solid #e4ecec;
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(10px);
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+.checkout-address-form-actions .btn-primary,
+.checkout-address-form-actions .btn-secondary{min-height:42px}
+.spin{animation:dento-spin .8s linear infinite}
+@keyframes dento-spin{to{transform:rotate(360deg)}}
+
+@media(max-width:650px){
+  .checkout-address-backdrop{align-items:flex-end}
+  .checkout-address-panel{
+    width:100%;
+    max-width:none;
+    height:94dvh;
+    border-radius:20px 20px 0 0;
+    box-shadow:0 -22px 65px rgba(7,31,38,.18);
+  }
+  .checkout-address-panel-head{
+    min-height:72px;
+    padding:14px 15px;
+  }
+  .checkout-address-panel-head h2{font-size:21px}
+  .checkout-address-book,
+  .checkout-address-form-wrap{padding:15px 13px 24px}
+  .checkout-address-book-top{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .checkout-new-address{width:100%;justify-content:center}
+  .checkout-address-card{
+    grid-template-columns:34px minmax(0,1fr);
+    gap:9px;
+    padding:12px;
+  }
+  .checkout-address-card-icon{width:34px;height:34px}
+  .checkout-address-card-actions{
+    grid-column:1/-1;
+    flex-direction:row;
+    align-items:center;
+    padding-top:9px;
+    border-top:1px solid #edf2f2;
+  }
+  .checkout-edit-address,
+  .checkout-use-address{flex:1;min-height:36px}
+  .checkout-address-form{grid-template-columns:1fr;gap:11px}
+  .checkout-span-2{grid-column:auto}
+  .checkout-address-form-actions{
+    bottom:-24px;
+    margin:18px -13px -24px;
+    padding:11px 13px calc(11px + env(safe-area-inset-bottom));
+    display:grid;
+    grid-template-columns:1fr 1.35fr;
+  }
+  .checkout-address-form-actions .btn-primary,
+  .checkout-address-form-actions .btn-secondary{width:100%;padding-inline:10px}
+  .checkout-address-empty{min-height:260px}
+}
+
+/* DENTO_CHECKOUT_ADDRESS_BOOK_V1_END */

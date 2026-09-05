@@ -1,29 +1,26 @@
-DENTO HUB — BUILD UNBLOCK FIX
+DENTO HUB — BUNDLE PRODUCT PICKER FIX
 
-Purpose:
-The last Admin Products/Bundles/Mobile patch introduced code that is valid at runtime
-but Cloudflare/Next strict TypeScript can reject during production type checking.
+Cause fixed:
+AdminBundles previously loaded products and all bundle tables in one Promise.all.
+If ANY bundle table query failed, the function returned before setProducts(),
+leaving the picker at "0 shown / 0 total".
 
-This patch does NOT change any runtime logic.
-It adds @ts-nocheck ONLY to the five files changed by the last upgrade:
-- src/components/admin-bundles.tsx
-- src/components/admin-products.tsx
-- src/components/catalog-provider.tsx
-- src/app/products/[slug]/page.tsx
-- src/lib/admin-media.ts
+This patch:
+- loads products FIRST and independently
+- uses a fallback product query for older schemas
+- keeps all catalog products visible even if a bundle table has an error
+- loads courses independently
+- shows bundle migration errors without wiping the catalog picker
 
-Apply from INSIDE dento-hub-app:
+Apply from inside dento-hub-app:
 
-Expand-Archive "$env:USERPROFILE\Downloads\DENTO_HUB_BUILD_UNBLOCK_FIX.zip" -DestinationPath "." -Force
-node .\unblock-last-upgrade-build.mjs
+Expand-Archive "$env:USERPROFILE\Downloads\DENTO_HUB_BUNDLE_PRODUCTS_VISIBLE_FIX.zip" -DestinationPath "." -Force
 
-Then:
 npm run build:cloudflare
 
 If successful:
-git add .
-git commit -m "Unblock admin upgrade production build"
+git add src/components/admin-bundles.tsx
+git commit -m "Fix bundle product picker loading"
 git push origin main
 
-Do not change Cloudflare settings.
-Do not rerun older patches.
+No Cloudflare/Supabase auth settings are changed.
