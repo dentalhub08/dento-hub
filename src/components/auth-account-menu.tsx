@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   ChevronDown,
   LayoutDashboard,
+  PackageCheck,
   LogOut,
   Settings,
   ShieldCheck,
@@ -176,6 +177,7 @@ export function AuthAccountMenu({ arabic = false }: { arabic?: boolean }) {
 
           <div className="account-dropdown-links">
             <Link href="/account"><UserRound size={16} /> {arabic ? "حسابي" : "My account"}</Link>
+            <Link href="/account/orders"><PackageCheck size={16} /> {arabic ? "طلباتي" : "My orders"}</Link>
             {isAdmin && <Link href="/admin/settings"><Settings size={16} /> Admin settings</Link>}
             <button type="button" onClick={signOut}><LogOut size={16} /> {arabic ? "تسجيل الخروج" : "Sign out"}</button>
           </div>
