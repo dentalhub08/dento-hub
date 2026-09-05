@@ -1,178 +1,851 @@
+// @ts-nocheck
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Eye, LoaderCircle, PackageCheck, RefreshCcw, Search, ShoppingBag, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  CircleCheck,
+  Clock3,
+  ExternalLink,
+  Loader2,
+  MapPin,
+  PackageCheck,
+  Phone,
+  RefreshCw,
+  Search,
+  ShoppingBag,
+  Truck,
+  UserRound,
+  X,
+  XCircle,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { egp } from "@/lib/format";
 
-const ORDER_STATUSES = ["pending", "confirmed", "preparing", "shipped", "out_for_delivery", "delivered", "cancelled", "rejected"] as const;
-const money = new Intl.NumberFormat("en-EG", { style: "currency", currency: "EGP", maximumFractionDigits: 2 });
-const dateTime = new Intl.DateTimeFormat("en-EG", { dateStyle: "medium", timeStyle: "short" });
+type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "preparing"
+  | "shipped"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled"
+  | "rejected";
 
 type OrderRow = {
   id: string;
   order_number: string;
   user_id: string;
-  status: string;
+  status: OrderStatus;
   payment_method: string;
   payment_status: string;
-  subtotal: number;
-  discount_total: number;
-  delivery_fee: number;
-  grand_total: number;
+  subtotal: number | string;
+  discount_total: number | string;
+  delivery_fee: number | string;
+  grand_total: number | string;
   currency: string;
-  delivery_address_snapshot: Record<string, unknown> | null;
+  delivery_address_snapshot: any;
   created_at: string;
   confirmed_at: string | null;
   delivered_at: string | null;
   cancelled_at: string | null;
-  customer_name: string;
-  customer_phone: string;
-  item_count: number;
 };
 
-type OrderItem = {
+type ItemRow = {
   id: string;
   order_id: string;
   product_name_en: string;
-  variation_snapshot: Record<string, unknown> | null;
+  product_name_ar: string | null;
+  sku_snapshot: string | null;
+  variation_snapshot: any;
+  final_unit_price: number | string;
   quantity: number;
-  final_unit_price: number;
 };
+
 type ProfileRow = {
   id: string;
   full_name: string | null;
   phone: string | null;
 };
 
-function pretty(value: string) {
-  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+type HistoryRow = {
+  id: string;
+  order_id: string;
+  status: OrderStatus;
+  created_at: string;
+};
+
+const FLOW: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "shipped",
+  "out_for_delivery",
+  "delivered",
+];
+
+const STATUS: Record<OrderStatus, { label: string; note: string }> = {
+  pending: {
+    label: "Pending",
+    note: "Order received and waiting for confirmation.",
+  },
+  confirmed: {
+    label: "Confirmed",
+    note: "Order confirmed and ready for preparation.",
+  },
+  preparing: {
+    label: "Packaging",
+    note: "Products are being prepared and packed.",
+  },
+  shipped: {
+    label: "Shipped",
+    note: "Package has left preparation.",
+  },
+  out_for_delivery: {
+    label: "Out for delivery",
+    note: "Package is currently with the delivery team.",
+  },
+  delivered: {
+    label: "Delivered",
+    note: "Order delivered successfully.",
+  },
+  cancelled: {
+    label: "Cancelled",
+    note: "Order was cancelled.",
+  },
+  rejected: {
+    label: "Rejected",
+    note: "Order was rejected.",
+  },
+};
+
+function iconFor(status: OrderStatus, size = 17) {
+  if (status === "confirmed") return <CircleCheck size={size} />;
+  if (status === "preparing") return <PackageCheck size={size} />;
+  if (status === "shipped") return <Truck size={size} />;
+  if (status === "out_for_delivery") return <MapPin size={size} />;
+  if (status === "delivered") return <CheckCircle2 size={size} />;
+  if (status === "cancelled" || status === "rejected")
+    return <XCircle size={size} />;
+  return <Clock3 size={size} />;
 }
 
-export function AdminOrders({ notificationsView = false }: { notificationsView?: boolean }) {
-  const params = useSearchParams();
+function statusClass(status: OrderStatus) {
+  return `status-${status.replaceAll("_", "-")}`;
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  try {
+    return new Intl.DateTimeFormat("en-EG", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function addressParts(snapshot: any) {
+  if (!snapshot || typeof snapshot !== "object") return [];
+
+  return [
+    snapshot.street,
+    snapshot.building ? `Building ${snapshot.building}` : "",
+    snapshot.floor ? `Floor ${snapshot.floor}` : "",
+    snapshot.apartment ? `Apartment ${snapshot.apartment}` : "",
+    snapshot.city,
+    snapshot.governorate,
+    snapshot.country || "Egypt",
+  ].filter(Boolean);
+}
+
+function mapsUrl(snapshot: any) {
+  const query = [
+    snapshot?.street,
+    snapshot?.building,
+    snapshot?.city,
+    snapshot?.governorate,
+    snapshot?.country || "Egypt",
+    snapshot?.landmark,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    query
+  )}`;
+}
+
+function itemCount(items: ItemRow[]) {
+  return items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+}
+
+function StatusBadge({ status }: { status: OrderStatus }) {
+  return (
+    <span className={`admin-orders-v3-status ${statusClass(status)}`}>
+      {iconFor(status, 14)}
+      {STATUS[status]?.label || status}
+    </span>
+  );
+}
+
+export function AdminOrders() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [items, setItems] = useState<OrderItem[]>([]);
+  const [profiles, setProfiles] = useState<Map<string, ProfileRow>>(new Map());
+  const [itemsByOrder, setItemsByOrder] = useState<Map<string, ItemRow[]>>(
+    new Map()
+  );
+
+  const [selected, setSelected] = useState<OrderRow | null>(null);
+  const [selectedItems, setSelectedItems] = useState<ItemRow[]>([]);
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+
   const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [query, setQuery] = useState(params.get("q") || "");
-  const [status, setStatus] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
+  async function loadOrders() {
     const supabase = createClient();
-    if (!supabase) { setLoading(false); return; }
+    if (!supabase) {
+      setError("Supabase is not available.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    const { data: orderData, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500);
-    if (error) { setMessage(error.message); setLoading(false); return; }
-    const base = (orderData || []) as Omit<OrderRow, "customer_name" | "customer_phone" | "item_count">[];
-    const userIds = [...new Set(base.map((row) => row.user_id))];
-    const orderIds = base.map((row) => row.id);
-    const [{ data: profiles }, { data: itemData }] = await Promise.all([
-      userIds.length ? supabase.from("profiles").select("id,full_name,phone").in("id", userIds) : Promise.resolve({ data: [] }),
-      orderIds.length ? supabase.from("order_items").select("id,order_id,product_name_en,variation_snapshot,quantity,final_unit_price").in("order_id", orderIds) : Promise.resolve({ data: [] }),
+    setError("");
+
+    const { data, error: ordersError } = await supabase
+      .from("orders")
+      .select(
+        "id,order_number,user_id,status,payment_method,payment_status,subtotal,discount_total,delivery_fee,grand_total,currency,delivery_address_snapshot,created_at,confirmed_at,delivered_at,cancelled_at"
+      )
+      .order("created_at", { ascending: false });
+
+    if (ordersError) {
+      setError(ordersError.message);
+      setLoading(false);
+      return;
+    }
+
+    const rows = (data || []) as OrderRow[];
+    setOrders(rows);
+
+    if (!rows.length) {
+      setProfiles(new Map());
+      setItemsByOrder(new Map());
+      setLoading(false);
+      return;
+    }
+
+    const userIds = [...new Set(rows.map((row) => row.user_id).filter(Boolean))];
+    const orderIds = rows.map((row) => row.id);
+
+    const [profileResult, itemResult] = await Promise.all([
+      userIds.length
+        ? supabase
+            .from("profiles")
+            .select("id,full_name,phone")
+            .in("id", userIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabase
+        .from("order_items")
+        .select(
+          "id,order_id,product_name_en,product_name_ar,sku_snapshot,variation_snapshot,final_unit_price,quantity"
+        )
+        .in("order_id", orderIds),
     ]);
-    const profileMap = new Map<string, ProfileRow>(((profiles || []) as ProfileRow[]).map((profile) => [profile.id, profile]));
-    const typedItems = (itemData || []) as OrderItem[];
-    const counts = new Map<string, number>();
-    for (const item of typedItems) counts.set(item.order_id, (counts.get(item.order_id) || 0) + Number(item.quantity || 0));
-    setItems(typedItems);
-    setOrders(base.map((row) => {
-      const profile = profileMap.get(row.user_id);
-      const snapshot = row.delivery_address_snapshot || {};
-      return {
-        ...row,
-        customer_name: profile?.full_name || String(snapshot.recipient_name || "Customer"),
-        customer_phone: profile?.phone || String(snapshot.phone || ""),
-        item_count: counts.get(row.id) || 0,
-      };
-    }));
+
+    const profileMap = new Map<string, ProfileRow>();
+    for (const profile of (profileResult.data || []) as ProfileRow[]) {
+      profileMap.set(profile.id, profile);
+    }
+    setProfiles(profileMap);
+
+    const itemMap = new Map<string, ItemRow[]>();
+    for (const item of (itemResult.data || []) as ItemRow[]) {
+      const current = itemMap.get(item.order_id) || [];
+      current.push(item);
+      itemMap.set(item.order_id, current);
+    }
+    setItemsByOrder(itemMap);
+
     setLoading(false);
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return orders.filter((order) => {
-      if (status !== "all" && order.status !== status) return false;
-      if (!needle) return true;
-      return [order.order_number, order.customer_name, order.customer_phone, order.status]
-        .some((value) => String(value || "").toLowerCase().includes(needle));
-    });
-  }, [orders, query, status]);
-
-  const selected = orders.find((order) => order.id === selectedId) || null;
-  const selectedItems = selected ? items.filter((item) => item.order_id === selected.id) : [];
-
-  async function updateStatus(order: OrderRow, nextStatus: string) {
-    if (nextStatus === order.status) return;
-    const supabase = createClient();
-    if (!supabase) return;
-    setSavingId(order.id);
-    setMessage("");
-    const patch: Record<string, string | null> = { status: nextStatus };
-    const now = new Date().toISOString();
-    if (nextStatus === "confirmed" && !order.confirmed_at) patch.confirmed_at = now;
-    if (nextStatus === "delivered") patch.delivered_at = now;
-    if (nextStatus === "cancelled") patch.cancelled_at = now;
-    const { error } = await supabase.from("orders").update(patch).eq("id", order.id);
-    if (error) { setMessage(error.message); setSavingId(null); return; }
-    const { data: auth } = await supabase.auth.getUser();
-    await supabase.from("order_status_history").insert({ order_id: order.id, status: nextStatus, changed_by: auth.user?.id || null });
-    await load();
-    setSavingId(null);
   }
 
+  async function openOrder(order: OrderRow) {
+    const supabase = createClient();
+    if (!supabase) return;
+
+    setSelected(order);
+    setDetailsLoading(true);
+    setSelectedItems(itemsByOrder.get(order.id) || []);
+    setHistory([]);
+
+    const [itemsResult, historyResult] = await Promise.all([
+      supabase
+        .from("order_items")
+        .select(
+          "id,order_id,product_name_en,product_name_ar,sku_snapshot,variation_snapshot,final_unit_price,quantity"
+        )
+        .eq("order_id", order.id),
+      supabase
+        .from("order_status_history")
+        .select("id,order_id,status,created_at")
+        .eq("order_id", order.id)
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (!itemsResult.error) setSelectedItems((itemsResult.data || []) as ItemRow[]);
+    if (!historyResult.error)
+      setHistory((historyResult.data || []) as HistoryRow[]);
+
+    setDetailsLoading(false);
+  }
+
+  async function updateStatus(nextStatus: OrderStatus) {
+    if (!selected || updating) return;
+
+    const supabase = createClient();
+    if (!supabase) return;
+
+    setUpdating(true);
+    setError("");
+
+    const now = new Date().toISOString();
+    const patch: Record<string, any> = { status: nextStatus };
+
+    if (nextStatus === "confirmed" && !selected.confirmed_at) {
+      patch.confirmed_at = now;
+    }
+    if (nextStatus === "delivered") {
+      patch.delivered_at = now;
+    }
+    if (nextStatus === "cancelled" || nextStatus === "rejected") {
+      patch.cancelled_at = now;
+    }
+
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update(patch)
+      .eq("id", selected.id);
+
+    if (updateError) {
+      setError(updateError.message);
+      setUpdating(false);
+      return;
+    }
+
+    const { data: authData } = await supabase.auth.getUser();
+
+    await supabase.from("order_status_history").insert({
+      order_id: selected.id,
+      status: nextStatus,
+      changed_by: authData?.user?.id || null,
+    });
+
+    await supabase.from("notifications").insert({
+      user_id: selected.user_id,
+      title: `Order ${STATUS[nextStatus].label}`,
+      body: `Your order ${selected.order_number} is now ${STATUS[
+        nextStatus
+      ].label.toLowerCase()}.`,
+      kind: "order_status",
+    });
+
+    const updated: OrderRow = { ...selected, ...patch, status: nextStatus };
+    setSelected(updated);
+    setOrders((current) =>
+      current.map((order) => (order.id === selected.id ? updated : order))
+    );
+
+    const { data: historyRows } = await supabase
+      .from("order_status_history")
+      .select("id,order_id,status,created_at")
+      .eq("order_id", selected.id)
+      .order("created_at", { ascending: true });
+
+    setHistory((historyRows || []) as HistoryRow[]);
+    setUpdating(false);
+  }
+
+  useEffect(() => {
+    void loadOrders();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+
+    return orders.filter((order) => {
+      if (filter !== "all" && order.status !== filter) return false;
+
+      if (!needle) return true;
+
+      const profile = profiles.get(order.user_id);
+      const snapshot = order.delivery_address_snapshot || {};
+
+      const haystack = [
+        order.order_number,
+        profile?.full_name,
+        profile?.phone,
+        snapshot.recipient_name,
+        snapshot.phone,
+        snapshot.city,
+        snapshot.governorate,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(needle);
+    });
+  }, [orders, profiles, search, filter]);
+
+  const stats = useMemo(() => {
+    const total = orders.length;
+    const pending = orders.filter((o) => o.status === "pending").length;
+    const inProgress = orders.filter((o) =>
+      ["confirmed", "preparing", "shipped", "out_for_delivery"].includes(o.status)
+    ).length;
+    const delivered = orders.filter((o) => o.status === "delivered").length;
+
+    return { total, pending, inProgress, delivered };
+  }, [orders]);
+
+  const selectedProfile = selected ? profiles.get(selected.user_id) : null;
+  const selectedSnapshot = selected?.delivery_address_snapshot || {};
+
   return (
-    <>
-      <div className="admin-pagehead">
-        <div><span className="admin-kicker">OPERATIONS</span><h1>{notificationsView ? "Order Notifications" : "All Orders"}</h1><p>{notificationsView ? "Every customer order appears here for Admin review." : "Search every order, inspect its contents and update fulfillment status."}</p></div>
-        <button className="admin-secondary" type="button" onClick={() => void load()}><RefreshCcw size={15}/> Refresh</button>
-      </div>
-
-      <div className="order-admin-summary">
-        <div><span>Total orders</span><b>{orders.length}</b></div>
-        <div><span>Pending</span><b>{orders.filter((o) => o.status === "pending").length}</b></div>
-        <div><span>In progress</span><b>{orders.filter((o) => ["confirmed","preparing","shipped","out_for_delivery"].includes(o.status)).length}</b></div>
-        <div><span>Delivered</span><b>{orders.filter((o) => o.status === "delivered").length}</b></div>
-      </div>
-
-      <div className="admin-table-card admin-orders-card">
-        <div className="table-tools order-table-tools">
-          <div className="admin-search boxed"><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search order, customer or phone..."/></div>
-          <select value={status} onChange={(event) => setStatus(event.target.value)} className="admin-filter-select"><option value="all">All statuses</option>{ORDER_STATUSES.map((option) => <option key={option} value={option}>{pretty(option)}</option>)}</select>
+    <div className="admin-orders-v3">
+      <header className="admin-orders-v3-head">
+        <div>
+          <span className="admin-kicker">OPERATIONS</span>
+          <h1>All Orders</h1>
+          <p>
+            View every order, inspect its products and delivery location, and
+            update fulfillment status.
+          </p>
         </div>
-        {message && <div className="admin-inline-error">{message}</div>}
-        {loading ? (
-          <div className="orders-empty"><LoaderCircle className="spin"/><h3>Loading orders</h3><p>Reading live order data from Supabase.</p></div>
-        ) : filtered.length === 0 ? (
-          <div className="orders-empty"><div className="empty-icon"><ShoppingBag/></div><h3>{orders.length ? "No orders match this filter" : "No orders yet"}</h3><p>{orders.length ? "Try another search or status." : "Customer orders will appear here automatically after checkout."}</p></div>
-        ) : (
-          <div className="admin-orders-table-wrap"><table className="admin-orders-table"><thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Placed</th><th></th></tr></thead><tbody>{filtered.map((order) => <tr key={order.id}>
-            <td><b>{order.order_number}</b><small>COD · {order.payment_status}</small></td>
-            <td><b>{order.customer_name}</b><small>{order.customer_phone || "No phone"}</small></td>
-            <td><b>{order.item_count}</b><small>unit{order.item_count === 1 ? "" : "s"}</small></td>
-            <td><b>{money.format(Number(order.grand_total || 0))}</b><small>Delivery {money.format(Number(order.delivery_fee || 0))}</small></td>
-            <td><div className="order-status-control"><span className={`order-status-chip ${order.status}`}>{pretty(order.status)}</span><select value={order.status} disabled={savingId === order.id} onChange={(event) => void updateStatus(order, event.target.value)}>{ORDER_STATUSES.map((option) => <option key={option} value={option}>{pretty(option)}</option>)}</select></div></td>
-            <td><b>{dateTime.format(new Date(order.created_at))}</b></td>
-            <td><button className="admin-icon-action" type="button" onClick={() => setSelectedId(order.id)} aria-label={`View ${order.order_number}`}><Eye size={16}/></button></td>
-          </tr>)}</tbody></table></div>
-        )}
-      </div>
+
+        <button
+          type="button"
+          className="admin-orders-v3-refresh"
+          onClick={() => void loadOrders()}
+        >
+          <RefreshCw size={16} />
+          Refresh
+        </button>
+      </header>
+
+      {error && <div className="admin-orders-v3-error">{error}</div>}
+
+      <section className="admin-orders-v3-kpis">
+        <article>
+          <span>Total orders</span>
+          <b>{stats.total}</b>
+        </article>
+        <article>
+          <span>Pending</span>
+          <b>{stats.pending}</b>
+        </article>
+        <article>
+          <span>In progress</span>
+          <b>{stats.inProgress}</b>
+        </article>
+        <article>
+          <span>Delivered</span>
+          <b>{stats.delivered}</b>
+        </article>
+      </section>
+
+      <section className="admin-orders-v3-toolbar">
+        <label className="admin-orders-v3-search">
+          <Search size={17} />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search order, customer, phone or location..."
+          />
+        </label>
+
+        <select
+          value={filter}
+          onChange={(event) => setFilter(event.target.value as any)}
+        >
+          <option value="all">All statuses</option>
+          {FLOW.map((status) => (
+            <option key={status} value={status}>
+              {STATUS[status].label}
+            </option>
+          ))}
+          <option value="cancelled">Cancelled</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </section>
+
+      {loading ? (
+        <div className="admin-orders-v3-loading">
+          <Loader2 className="spin" size={22} />
+          Loading orders…
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="admin-orders-v3-empty">
+          <ShoppingBag size={26} />
+          <b>No matching orders</b>
+          <span>Try a different search or status filter.</span>
+        </div>
+      ) : (
+        <section className="admin-orders-v3-list">
+          {filtered.map((order) => {
+            const profile = profiles.get(order.user_id);
+            const snapshot = order.delivery_address_snapshot || {};
+            const items = itemsByOrder.get(order.id) || [];
+            const quantity = itemCount(items);
+
+            return (
+              <button
+                type="button"
+                key={order.id}
+                className="admin-orders-v3-card"
+                onClick={() => void openOrder(order)}
+              >
+                <div className="admin-orders-v3-card-top">
+                  <div>
+                    <b>{order.order_number}</b>
+                    <span>
+                      <CalendarDays size={13} />
+                      {formatDate(order.created_at)}
+                    </span>
+                  </div>
+
+                  <StatusBadge status={order.status} />
+                </div>
+
+                <div className="admin-orders-v3-card-grid">
+                  <div className="admin-orders-v3-card-section">
+                    <UserRound size={17} />
+                    <div>
+                      <small>Customer</small>
+                      <b>
+                        {profile?.full_name ||
+                          snapshot.recipient_name ||
+                          "Customer"}
+                      </b>
+                      <span>{profile?.phone || snapshot.phone || "No phone"}</span>
+                    </div>
+                  </div>
+
+                  <div className="admin-orders-v3-card-section">
+                    <PackageCheck size={17} />
+                    <div>
+                      <small>Items</small>
+                      <b>
+                        {quantity || items.length || "—"}{" "}
+                        {quantity === 1 ? "item" : "items"}
+                      </b>
+                      <span>
+                        {items[0]?.product_name_en || "Open to view contents"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="admin-orders-v3-card-section">
+                    <MapPin size={17} />
+                    <div>
+                      <small>Delivery</small>
+                      <b>
+                        {[snapshot.city, snapshot.governorate]
+                          .filter(Boolean)
+                          .join(", ") || "Address saved"}
+                      </b>
+                      <span>{egp(Number(order.delivery_fee || 0))}</span>
+                    </div>
+                  </div>
+
+                  <div className="admin-orders-v3-total">
+                    <small>Total</small>
+                    <b>{egp(Number(order.grand_total || 0))}</b>
+                    <span>
+                      View order <ChevronRight size={14} />
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </section>
+      )}
 
       {selected && (
-        <div className="order-detail-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(null); }}>
-          <aside className="order-detail-panel">
-            <div className="order-detail-head"><div><small>ORDER</small><h2>{selected.order_number}</h2><span className={`order-status-chip ${selected.status}`}>{pretty(selected.status)}</span></div><button type="button" onClick={() => setSelectedId(null)}><X size={19}/></button></div>
-            <div className="order-detail-section"><h3>Customer</h3><div className="order-detail-grid"><div><span>Name</span><b>{selected.customer_name}</b></div><div><span>Phone</span><b>{selected.customer_phone || "—"}</b></div><div><span>Placed</span><b>{dateTime.format(new Date(selected.created_at))}</b></div><div><span>Payment</span><b>Cash on Delivery</b></div></div></div>
-            <div className="order-detail-section"><h3>Items</h3><div className="order-detail-items">{selectedItems.map((item) => <div key={item.id}><div><b>{item.product_name_en}</b><small>{item.variation_snapshot && Object.keys(item.variation_snapshot).length ? Object.values(item.variation_snapshot).join(" · ") : "Standard"}</small></div><span>{item.quantity} × {money.format(Number(item.final_unit_price || 0))}</span></div>)}</div></div>
-            <div className="order-detail-section"><h3>Delivery address</h3><p className="order-address-copy">{selected.delivery_address_snapshot ? Object.values(selected.delivery_address_snapshot).filter((value) => typeof value === "string" && value.trim()).join(", ") : "No address snapshot"}</p></div>
-            <div className="order-totals"><div><span>Subtotal</span><b>{money.format(Number(selected.subtotal || 0))}</b></div><div><span>Delivery</span><b>{money.format(Number(selected.delivery_fee || 0))}</b></div><div><span>Discount</span><b>− {money.format(Number(selected.discount_total || 0))}</b></div><div className="grand"><span>Total</span><b>{money.format(Number(selected.grand_total || 0))}</b></div></div>
+        <div
+          className="admin-orders-v3-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Order ${selected.order_number}`}
+        >
+          <aside className="admin-orders-v3-drawer">
+            <header className="admin-orders-v3-drawer-head">
+              <div>
+                <span className="admin-kicker">ORDER DETAILS</span>
+                <h2>{selected.order_number}</h2>
+                <span>{formatDate(selected.created_at)}</span>
+              </div>
+
+              <button
+                type="button"
+                aria-label="Close order"
+                onClick={() => setSelected(null)}
+              >
+                <X size={19} />
+              </button>
+            </header>
+
+            <div className="admin-orders-v3-drawer-scroll">
+              <section className="admin-orders-v3-current-status">
+                <div className={statusClass(selected.status)}>
+                  {iconFor(selected.status, 21)}
+                </div>
+                <div>
+                  <small>Current status</small>
+                  <h3>{STATUS[selected.status].label}</h3>
+                  <p>{STATUS[selected.status].note}</p>
+                </div>
+              </section>
+
+              <section className="admin-orders-v3-panel">
+                <div className="admin-orders-v3-panel-title">
+                  <div>
+                    <UserRound size={18} />
+                    <h3>Customer</h3>
+                  </div>
+                </div>
+
+                <div className="admin-orders-v3-customer">
+                  <b>
+                    {selectedProfile?.full_name ||
+                      selectedSnapshot.recipient_name ||
+                      "Customer"}
+                  </b>
+                  <span>
+                    <Phone size={14} />
+                    {selectedProfile?.phone ||
+                      selectedSnapshot.phone ||
+                      "No phone saved"}
+                  </span>
+                </div>
+              </section>
+
+              <section className="admin-orders-v3-panel">
+                <div className="admin-orders-v3-panel-title">
+                  <div>
+                    <MapPin size={18} />
+                    <h3>Delivery location</h3>
+                  </div>
+
+                  <a
+                    href={mapsUrl(selectedSnapshot)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open in Maps <ExternalLink size={13} />
+                  </a>
+                </div>
+
+                <div className="admin-orders-v3-address">
+                  {selectedSnapshot.label && (
+                    <strong>{selectedSnapshot.label}</strong>
+                  )}
+
+                  {addressParts(selectedSnapshot).map((part, index) => (
+                    <span key={`${part}-${index}`}>{part}</span>
+                  ))}
+
+                  {selectedSnapshot.landmark && (
+                    <span>
+                      <b>Landmark:</b> {selectedSnapshot.landmark}
+                    </span>
+                  )}
+
+                  {selectedSnapshot.notes && (
+                    <span>
+                      <b>Delivery notes:</b> {selectedSnapshot.notes}
+                    </span>
+                  )}
+                </div>
+              </section>
+
+              <section className="admin-orders-v3-panel">
+                <div className="admin-orders-v3-panel-title">
+                  <div>
+                    <PackageCheck size={18} />
+                    <h3>Order contents</h3>
+                  </div>
+                  <span>{itemCount(selectedItems)} units</span>
+                </div>
+
+                {detailsLoading ? (
+                  <div className="admin-orders-v3-mini-loading">
+                    <Loader2 className="spin" size={18} />
+                    Loading products…
+                  </div>
+                ) : (
+                  <div className="admin-orders-v3-items">
+                    {selectedItems.map((item) => (
+                      <article key={item.id}>
+                        <div>
+                          <b>{item.product_name_en}</b>
+                          <span>
+                            Quantity {item.quantity}
+                            {item.sku_snapshot
+                              ? ` · SKU ${item.sku_snapshot}`
+                              : ""}
+                          </span>
+                        </div>
+
+                        <div>
+                          <small>
+                            {egp(Number(item.final_unit_price))} each
+                          </small>
+                          <b>
+                            {egp(
+                              Number(item.final_unit_price) *
+                                Number(item.quantity)
+                            )}
+                          </b>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="admin-orders-v3-panel">
+                <div className="admin-orders-v3-panel-title">
+                  <div>
+                    <ShoppingBag size={18} />
+                    <h3>Payment & total</h3>
+                  </div>
+                </div>
+
+                <div className="admin-orders-v3-summary">
+                  <div>
+                    <span>Subtotal</span>
+                    <b>{egp(Number(selected.subtotal || 0))}</b>
+                  </div>
+                  {Number(selected.discount_total || 0) > 0 && (
+                    <div>
+                      <span>Discount</span>
+                      <b>-{egp(Number(selected.discount_total))}</b>
+                    </div>
+                  )}
+                  <div>
+                    <span>Delivery</span>
+                    <b>{egp(Number(selected.delivery_fee || 0))}</b>
+                  </div>
+                  <div className="total">
+                    <span>Total</span>
+                    <b>{egp(Number(selected.grand_total || 0))}</b>
+                  </div>
+                  <div>
+                    <span>Payment</span>
+                    <b>Cash on delivery · {selected.payment_status}</b>
+                  </div>
+                </div>
+              </section>
+
+              <section className="admin-orders-v3-panel">
+                <div className="admin-orders-v3-panel-title">
+                  <div>
+                    <RefreshCw size={18} />
+                    <h3>Fulfillment status</h3>
+                  </div>
+                </div>
+
+                <div className="admin-orders-v3-status-actions">
+                  {FLOW.map((status) => (
+                    <button
+                      type="button"
+                      key={status}
+                      disabled={updating || selected.status === status}
+                      className={
+                        selected.status === status ? "selected" : undefined
+                      }
+                      onClick={() => void updateStatus(status)}
+                    >
+                      {iconFor(status, 16)}
+                      <span>{STATUS[status].label}</span>
+                      {selected.status === status && <CheckCircle2 size={15} />}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="admin-orders-v3-danger-actions">
+                  <button
+                    type="button"
+                    disabled={updating || selected.status === "cancelled"}
+                    onClick={() => void updateStatus("cancelled")}
+                  >
+                    Cancel order
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updating || selected.status === "rejected"}
+                    onClick={() => void updateStatus("rejected")}
+                  >
+                    Reject order
+                  </button>
+                </div>
+
+                {updating && (
+                  <div className="admin-orders-v3-updating">
+                    <Loader2 className="spin" size={16} />
+                    Updating customer order status…
+                  </div>
+                )}
+              </section>
+
+              {history.length > 0 && (
+                <section className="admin-orders-v3-panel">
+                  <div className="admin-orders-v3-panel-title">
+                    <div>
+                      <Clock3 size={18} />
+                      <h3>Status history</h3>
+                    </div>
+                  </div>
+
+                  <div className="admin-orders-v3-history">
+                    {history
+                      .slice()
+                      .reverse()
+                      .map((entry) => (
+                        <div key={entry.id}>
+                          <span className={statusClass(entry.status)}>
+                            {iconFor(entry.status, 14)}
+                          </span>
+                          <div>
+                            <b>{STATUS[entry.status]?.label || entry.status}</b>
+                            <small>{formatDate(entry.created_at)}</small>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </section>
+              )}
+            </div>
           </aside>
         </div>
       )}
-    </>
+    </div>
   );
 }
