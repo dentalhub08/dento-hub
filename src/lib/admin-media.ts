@@ -15,29 +15,20 @@ function extensionFor(file: File) {
 export async function uploadAdminImage(
   supabase: SupabaseClient,
   file: File,
-  folder: "ads" | "bundles"
+  folder: "ads" | "bundles" | "products"
 ) {
-  if (!ALLOWED.has(file.type)) {
-    throw new Error("Use a JPG, PNG, WEBP or GIF image.");
-  }
-  if (file.size > MAX_BYTES) {
-    throw new Error("Image must be 8 MB or smaller.");
-  }
+  if (!ALLOWED.has(file.type)) throw new Error("Use a JPG, PNG, WEBP or GIF image.");
+  if (file.size > MAX_BYTES) throw new Error("Image must be 8 MB or smaller.");
 
   const path = `${folder}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${extensionFor(file)}`;
-
-  const { error } = await supabase.storage
-    .from("dento-media")
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
-
+  const { error } = await supabase.storage.from("dento-media").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type,
+  });
   if (error) throw error;
 
   const { data } = supabase.storage.from("dento-media").getPublicUrl(path);
   if (!data.publicUrl) throw new Error("Image uploaded, but its public URL could not be created.");
-
   return { publicUrl: data.publicUrl, path };
 }

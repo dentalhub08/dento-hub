@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { uploadAdminImage } from "@/lib/admin-media";
+import { titleCaseSource } from "@/lib/format";
 
 type Product = {
   id: string;
@@ -22,6 +23,7 @@ type Product = {
   price: number | null;
   available: boolean;
   status: string;
+  sourceRow: number | null;
 };
 
 type Course = { id: string; name_en: string };
@@ -131,8 +133,7 @@ export function AdminBundles() {
         supabase.from("bundle_academic_years").select("bundle_id,academic_year"),
         supabase
           .from("products")
-          .select("id,source_name,canonical_name_en,selling_price_egp,is_available,status")
-          .neq("status", "archived")
+          .select("id,source_row_no,source_name,selling_price_egp,is_available,status")
           .order("source_row_no", { ascending: true }),
         supabase.from("courses").select("id,name_en").eq("is_active", true).order("name_en"),
       ]);
@@ -155,7 +156,7 @@ export function AdminBundles() {
     const productRows = (productResult.data || []) as Array<{
       id: string;
       source_name: string | null;
-      canonical_name_en: string | null;
+      source_row_no: number | null;
       selling_price_egp: number | string | null;
       is_available: boolean;
       status: string;
@@ -164,10 +165,11 @@ export function AdminBundles() {
     setProducts(
       productRows.map((row) => ({
         id: row.id,
-        name: row.canonical_name_en || row.source_name || "Unnamed product",
+        name: titleCaseSource(row.source_name || "Unnamed product"),
         price: row.selling_price_egp === null ? null : Number(row.selling_price_egp),
         available: row.is_available,
         status: row.status,
+        sourceRow: row.source_row_no,
       }))
     );
 
@@ -216,9 +218,7 @@ export function AdminBundles() {
 
   const searchedProducts = useMemo(() => {
     const needle = productSearch.trim().toLowerCase();
-    return products
-      .filter((product) => !needle || product.name.toLowerCase().includes(needle))
-      .slice(0, 40);
+    return products.filter((product) => !needle || product.name.toLowerCase().includes(needle));
   }, [products, productSearch]);
 
   function normalTotal(bundle: BundleEditor) {
@@ -679,6 +679,7 @@ export function AdminBundles() {
                 </div>
 
                 <div className="dento-product-picker">
+                  <div className="dento-product-picker-head"><b>All catalog products</b><span>{searchedProducts.length} shown / {products.length} total</span></div>
                   <div className="admin-search boxed">
                     <Search size={16} />
                     <input
@@ -689,15 +690,15 @@ export function AdminBundles() {
                   </div>
 
                   <div className="dento-product-results">
-                    {searchedProducts.map((product) => {
+                    {searchedProducts.length === 0 ? <div className="dento-mini-empty">No products match this search.</div> : searchedProducts.map((product) => {
                       const selected = editing.items.some((item) => item.productId === product.id);
                       return (
-                        <button type="button" key={product.id} onClick={() => addProduct(product.id)}>
+                        <button type="button" key={product.id} disabled={product.status === "archived"} onClick={() => addProduct(product.id)}>
                           <span>
                             <b>{product.name}</b>
                             <small>
                               {product.price === null ? "Price pending" : `${product.price.toFixed(2)} EGP`}
-                              {!product.available ? " • unavailable" : ""}
+                              {!product.available ? " • unavailable" : ""}{product.status === "archived" ? " • archived" : ""}
                             </small>
                           </span>
                           <span>{selected ? "Add another" : <><Plus size={14} /> Add</>}</span>

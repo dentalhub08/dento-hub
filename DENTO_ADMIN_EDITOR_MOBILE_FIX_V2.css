@@ -1,0 +1,99 @@
+/* DENTO_ADMIN_EDITOR_MOBILE_FIX_V2_START */
+
+/* Bundle picker: show the full catalog instead of a blank/limited pane. */
+.dento-product-picker{display:flex!important;flex-direction:column!important;min-height:260px!important;overflow:hidden!important}
+.dento-product-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px 0;color:#17363d}
+.dento-product-picker-head b{font-size:10px}
+.dento-product-picker-head span{font-size:8px;color:#7c9095;font-weight:800}
+.dento-product-results{display:flex!important;flex-direction:column!important;min-height:190px!important;max-height:420px!important;overflow-y:auto!important;overscroll-behavior:contain}
+.dento-product-results>button:disabled{opacity:.48;cursor:not-allowed;background:#f6f8f8!important}
+
+/* Product editor image controls */
+.dento-product-image-editor{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:10px!important;padding:16px!important}
+.dento-product-image-canvas{width:100%;aspect-ratio:4/3;min-height:260px;background:#fff;border-radius:13px;display:grid;place-items:center;overflow:hidden}
+.dento-product-image-canvas>img{width:100%!important;height:100%!important;object-fit:contain!important;display:block!important}
+.dento-product-image-canvas>div{display:flex;flex-direction:column;align-items:center;gap:8px;color:#8aa0a5;font-size:10px}
+.dento-product-image-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.dento-file-button{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;cursor:pointer!important;text-transform:none!important}
+.dento-file-button.disabled{opacity:.5;pointer-events:none}
+.dento-product-image-editor>small{text-align:center;color:#819398;font-size:8px}
+
+/* Cleaner desktop bundle editor proportions */
+.dento-bundle-modal{height:min(900px,92vh)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+.dento-bundle-modal>.dento-bundle-editor{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
+.dento-bundle-products{min-height:0!important}
+.dento-bundle-products .dento-product-picker{flex:1 0 auto!important}
+.dento-bundle-modal>.admin-modal-footer{flex:0 0 auto!important}
+
+/* Mobile admin — second pass. Keep the page inside the viewport and make editors full-screen. */
+@media(max-width:800px){
+  html,body{max-width:100vw!important;overflow-x:hidden!important}
+  .admin-app{display:block!important;width:100%!important;min-width:0!important;overflow-x:hidden!important}
+  .admin-main{width:100%!important;min-width:0!important;margin:0!important;overflow-x:hidden!important}
+  .admin-sidebar{position:sticky!important;top:0!important;z-index:220!important;width:100%!important;height:auto!important;min-height:0!important;padding:7px 8px!important;border-right:0!important;border-bottom:1px solid rgba(255,255,255,.12)!important}
+  .admin-sidebar .admin-brand,.admin-sidebar .admin-sidebar-label,.admin-sidebar .admin-help,.admin-sidebar .admin-sidebar-bottom{display:none!important}
+  .admin-sidebar nav{display:flex!important;flex-direction:row!important;gap:5px!important;width:100%!important;overflow-x:auto!important;padding:0!important;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .admin-sidebar nav::-webkit-scrollbar{display:none!important}
+  .admin-sidebar nav a{flex:0 0 auto!important;min-width:max-content!important;width:auto!important;min-height:40px!important;padding:8px 10px!important;border-radius:10px!important;gap:6px!important;font-size:9px!important;scroll-snap-align:start}
+  .admin-sidebar nav a svg{width:15px!important;height:15px!important}
+
+  .admin-top{top:54px!important;z-index:210!important;width:100%!important;height:56px!important;min-height:56px!important;padding:7px 10px!important;gap:8px!important}
+  .admin-top>.admin-search{display:none!important}
+  .admin-top-actions,.admin-user-live,.admin-user{margin-left:auto!important;min-width:0!important;max-width:100%!important}
+  .admin-user-trigger{max-width:44px!important;width:44px!important;padding:0!important;justify-content:center!important}
+  .admin-user-trigger>b,.admin-user-trigger>svg{display:none!important}
+
+  .admin-content{width:100%!important;min-width:0!important;max-width:none!important;padding:12px 9px 32px!important;overflow-x:hidden!important}
+  .admin-pagehead{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;margin-bottom:13px!important}
+  .admin-pagehead h1{font-size:26px!important;line-height:1.05!important}
+  .admin-pagehead p{font-size:10px!important;line-height:1.45!important}
+  .page-actions{display:grid!important;grid-template-columns:1fr 1fr!important;width:100%!important;gap:7px!important}
+  .admin-primary,.admin-secondary{min-height:40px!important;justify-content:center!important}
+
+  .admin-table-card{width:100%!important;min-width:0!important;overflow:hidden!important}
+  .admin-table-scroll{width:100%!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+  .admin-table{min-width:720px!important}
+  .table-tools{display:flex!important;flex-wrap:wrap!important;gap:7px!important;padding:9px!important}
+  .table-tools>.admin-search.boxed{flex:1 1 100%!important;width:100%!important;min-width:0!important}
+  .table-tools>span{margin-left:0!important;width:100%!important}
+
+  .admin-modal-backdrop{position:fixed!important;inset:0!important;padding:0!important;z-index:500!important;display:block!important;background:rgba(4,28,34,.42)!important}
+  .admin-modal,.dento-media-modal,.dento-bundle-modal,.product-editor,.dento-product-editor-v2{position:fixed!important;inset:0!important;width:100vw!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;margin:0!important;border-radius:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;background:#fff!important}
+  .admin-modal-head{position:relative!important;top:auto!important;flex:0 0 auto!important;min-height:70px!important;padding:12px 13px!important;background:#fff!important;border-bottom:1px solid #e4eceb!important;z-index:5!important}
+  .admin-modal-head h2{font-size:20px!important;line-height:1.15!important}
+
+  .product-edit-grid,.dento-editor-grid,.dento-bundle-editor{display:grid!important;grid-template-columns:1fr!important;gap:13px!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;padding:12px!important;-webkit-overflow-scrolling:touch!important}
+  .product-editor-preview{width:100%!important;min-height:0!important}
+  .dento-product-image-canvas{min-height:220px!important;aspect-ratio:4/3!important}
+  .dento-product-image-actions{grid-template-columns:1fr!important}
+  .product-editor-fields{width:100%!important;min-width:0!important}
+
+  .dento-bundle-modal>.dento-bundle-editor{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
+  .dento-bundle-products{min-width:0!important}
+  .dento-product-picker{min-height:360px!important;max-height:none!important}
+  .dento-product-results{min-height:240px!important;max-height:52vh!important}
+  .dento-upload-panel.compact{display:flex!important;flex-direction:column!important}
+  .dento-upload-preview{width:100%!important}
+  .dento-selected-row{grid-template-columns:minmax(0,1fr) 62px 34px!important;gap:6px!important}
+  .dento-toggle-grid,.two-field{grid-template-columns:1fr!important}
+
+  .admin-modal-footer{position:relative!important;bottom:auto!important;flex:0 0 auto!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important;width:100%!important;padding:9px 10px max(9px,env(safe-area-inset-bottom))!important;background:#fff!important;border-top:1px solid #e1e9e8!important;z-index:10!important}
+  .admin-modal-footer .modal-spacer{display:none!important}
+  .admin-modal-footer>.danger-button:first-child{grid-column:1/-1!important}
+  .admin-modal-footer>.admin-primary,.admin-modal-footer>.admin-secondary{width:100%!important;margin:0!important}
+
+  .dento-ad-row,.dento-bundle-row{grid-template-columns:70px minmax(0,1fr)!important;gap:10px!important;padding:10px!important}
+  .dento-ad-thumb,.dento-bundle-thumb{width:70px!important;height:62px!important}
+  .dento-row-actions{grid-column:1/-1!important;justify-content:flex-end!important;padding-top:8px!important;border-top:1px solid #edf2f2!important}
+
+  .admin-user-dropdown,.admin-orders-popover{position:fixed!important;left:9px!important;right:9px!important;top:116px!important;width:auto!important;max-width:none!important}
+}
+
+@media(max-width:430px){
+  .page-actions{grid-template-columns:1fr!important}
+  .admin-alert{align-items:flex-start!important;gap:8px!important;padding:10px!important}
+  .admin-alert>button{width:100%!important;margin-left:0!important}
+  .dento-media-kpis{grid-template-columns:1fr!important}
+  .dento-product-picker-head{align-items:flex-start!important;flex-direction:column!important;gap:3px!important}
+}
+/* DENTO_ADMIN_EDITOR_MOBILE_FIX_V2_END */
